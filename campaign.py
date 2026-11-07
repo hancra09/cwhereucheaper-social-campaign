@@ -17,7 +17,9 @@ END = dt.date(2026, 12, 7)
 ORIGIN = 'https://www.cwhereucheaper.co.za'
 REPO = 'hancra09/cwhereucheaper-social-campaign'
 ORG = '6aeef1646c3957c58fdd3b19'
-CHANNELS = {'youtube': '6aeef238e29c69a171916d83', 'tiktok': '6aeef202e29c69a171916c16'}
+CHANNELS = {'youtube': '6aeef238e29c69a171916d83', 'tiktok': '6aeef202e29c69a171916c16',
+    'facebook': '6aeef981e29c69a17191b79b'}
+FACEBOOK_PAGE_ID = '1265683793295341'  # Public URL redirects to profile 61592840593333.
 POST_FIELDS = 'id channelId status text dueAt externalLink error { message }'
 SLOTS = {'early': dt.time(8), 'am': dt.time(12, 30), 'pm': dt.time(18, 30)}
 
@@ -162,8 +164,9 @@ def run(day, slot, *, now, immediate=False, preflight=False):
         if now >= due - dt.timedelta(minutes=5):
             raise RuntimeError('Too late to schedule this slot safely; no catch-up flood.')
     # Read-only preflight validates authentication and channel identity, never creates a release/render/post.
-    channels = buffer('query($id:OrganizationId!){channels(input:{organizationId:$id}){id name service}}', {'id': ORG})['channels']
+    channels = buffer('query($id:OrganizationId!){channels(input:{organizationId:$id}){id name service serviceId}}', {'id': ORG})['channels']
     assert {c['service']:c['id'] for c in channels} == CHANNELS, 'Connected channel identity changed'
+    assert next(c['serviceId'] for c in channels if c['service'] == 'facebook') == FACEBOOK_PAGE_ID, 'Facebook Page identity changed'
     posts = existing_posts()
     if preflight:
         print('Preflight PASS: 90 scripts, three daily slots, campaign bounds, authenticated intended channels, post reconciliation.')
@@ -186,7 +189,9 @@ def run(day, slot, *, now, immediate=False, preflight=False):
         else:
             ledger['pending_service'] = service
             save(release, ledger)
-            meta = {service: {'isAiGenerated': True}}
+            # Facebook requires its native Reel type and does not accept the
+            # TikTok/YouTube isAiGenerated input. AI narration is disclosed in text.
+            meta = {'facebook': {'type': 'reel'}} if service == 'facebook' else {service: {'isAiGenerated': True}}
             if service == 'youtube':
                 meta[service].update({'title': item['title'] + ' #Shorts', 'categoryId': '27',
                     'privacy': 'public', 'madeForKids': False, 'notifySubscribers': True})

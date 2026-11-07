@@ -7,7 +7,7 @@ import campaign as c
 
 class CampaignSafety(unittest.TestCase):
     def setUp(self):
-        self.channels = [{'service':s,'id':i} for s,i in c.CHANNELS.items()]
+        self.channels = [{'service':s,'id':i,'serviceId':c.FACEBOOK_PAGE_ID if s=='facebook' else 'existing'} for s,i in c.CHANNELS.items()]
         self.now = dt.datetime(2026,11,8,11,23,tzinfo=c.SAST)
         self.release = {'id':1,'body':'{}','assets':[]}
 
@@ -62,6 +62,13 @@ class CampaignSafety(unittest.TestCase):
             selected=c.scheduled_slot(now)
             self.assertEqual(selected,slot)
             self.assertGreater(dt.datetime.combine(now.date(),c.SLOTS[selected],c.SAST),now)
+
+    def test_wrong_facebook_page_blocks_all_publishing(self):
+        self.channels[-1]['serviceId']='wrong-page'
+        with patch.object(c,'buffer',return_value={'channels':self.channels}), patch.object(c,'load_release') as release:
+            with self.assertRaisesRegex(AssertionError,'Facebook Page identity'):
+                c.run(c.START,'am',now=self.now)
+            release.assert_not_called()
 
 
 if __name__=='__main__':

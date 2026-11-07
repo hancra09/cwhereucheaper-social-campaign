@@ -234,8 +234,15 @@ def main():
     if not START <= now.date() <= END:
         print('Campaign inactive outside 8 Nov–7 Dec 2026 SAST. No render or publish.')
         return
-    audit()
+    prior_failure = None
+    try:
+        audit()
+    except RuntimeError as error:
+        # A missed/failed earlier slot must not prevent the next distinct video.
+        prior_failure = str(error)
     run(now.date(), 'am' if now.hour < 15 else 'pm', now=now)
+    if prior_failure:
+        raise RuntimeError(prior_failure)
 
 
 if __name__ == '__main__':

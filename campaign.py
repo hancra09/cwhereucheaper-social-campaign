@@ -19,6 +19,23 @@ REPO = 'hancra09/cwhereucheaper-social-campaign'
 ORG = '6aeef1646c3957c58fdd3b19'
 CHANNELS = {'youtube': '6aeef238e29c69a171916d83', 'tiktok': '6aeef202e29c69a171916c16'}
 POST_FIELDS = 'id channelId status text dueAt externalLink error { message }'
+SLOTS = {'early': dt.time(8), 'am': dt.time(12, 30), 'pm': dt.time(18, 30)}
+
+
+def campaign_item(day, slot):
+    items = json.loads(Path(__file__).with_name('content.json').read_text())
+    third = json.loads(Path(__file__).with_name('content-third.json').read_text())
+    assert len(items) == 60 and len(third) == 30
+    assert len({i['title'] for i in items + third}) == 90
+    assert START <= day <= END, 'Outside campaign dates'
+    assert slot in SLOTS, 'Unknown campaign slot'
+    offset = (day - START).days
+    # Preserve the original am/pm mapping and all previously queued captions.
+    return third[offset] if slot == 'early' else items[offset * 2 + (slot == 'pm')]
+
+
+def scheduled_slot(now):
+    return 'early' if now.hour < 10 else 'am' if now.hour < 15 else 'pm'
 
 
 def request(url, *, body=None, headers=None, method=None, opener=None):
@@ -134,12 +151,8 @@ def caption(item, service, tag):
 
 
 def run(day, slot, *, now, immediate=False, preflight=False):
-    items = json.loads(Path(__file__).with_name('content.json').read_text())
-    assert len(items) == 60 and len({i['title'] for i in items}) == 60
-    assert START <= day <= END, 'Outside campaign dates'
-    index = (day - START).days * 2 + (slot == 'pm')
-    item = items[index]
-    due = dt.datetime.combine(day, dt.time(12 if slot == 'am' else 18, 30), SAST)
+    item = campaign_item(day, slot)
+    due = dt.datetime.combine(day, SLOTS[slot], SAST)
     if immediate:
         assert os.environ.get('ALLOW_SMOKE') == '1' and day == START and slot == 'am' and now.date() == dt.date(2026, 11, 7)
         tag = 'smoke-20261107'
@@ -153,7 +166,7 @@ def run(day, slot, *, now, immediate=False, preflight=False):
     assert {c['service']:c['id'] for c in channels} == CHANNELS, 'Connected channel identity changed'
     posts = existing_posts()
     if preflight:
-        print('Preflight PASS: 60 scripts, campaign bounds, authenticated intended channels, post reconciliation.')
+        print('Preflight PASS: 90 scripts, three daily slots, campaign bounds, authenticated intended channels, post reconciliation.')
         return
     release = load_release(tag)
     ledger = json.loads(release['body'] or '{}')
@@ -203,8 +216,8 @@ def audit():
     cutoff = dt.datetime.now(SAST) - dt.timedelta(minutes=15)
     day = START
     while day <= min(cutoff.date(), END):
-        for slot, hour in [('am', 12), ('pm', 18)]:
-            if dt.datetime.combine(day, dt.time(hour, 30), SAST) > cutoff:
+        for slot, publish_time in SLOTS.items():
+            if dt.datetime.combine(day, publish_time, SAST) > cutoff:
                 continue
             tag = day.strftime('%Y%m%d') + '-' + slot
             for service, channel in CHANNELS.items():
@@ -240,7 +253,7 @@ def main():
     except RuntimeError as error:
         # A missed/failed earlier slot must not prevent the next distinct video.
         prior_failure = str(error)
-    run(now.date(), 'am' if now.hour < 15 else 'pm', now=now)
+    run(now.date(), scheduled_slot(now), now=now)
     if prior_failure:
         raise RuntimeError(prior_failure)
 

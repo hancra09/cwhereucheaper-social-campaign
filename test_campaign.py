@@ -45,6 +45,24 @@ class CampaignSafety(unittest.TestCase):
                 c.run(c.START,'am',now=self.now)
             release.assert_not_called()
 
+    def test_third_slot_keeps_all_previously_planned_items_stable(self):
+        original=json.loads(c.Path(c.__file__).with_name('content.json').read_text())
+        seen=[]
+        for offset in range(30):
+            day=c.START+dt.timedelta(days=offset)
+            self.assertEqual(c.campaign_item(day,'am'),original[offset*2])
+            self.assertEqual(c.campaign_item(day,'pm'),original[offset*2+1])
+            for slot in c.SLOTS:
+                seen.append(c.campaign_item(day,slot)['title'])
+        self.assertEqual(len(set(seen)),90)
+
+    def test_actual_cloud_trigger_times_select_correct_sast_slot(self):
+        for hour,minute,slot in [(6,53,'early'),(11,23,'am'),(17,23,'pm')]:
+            now=self.now.replace(hour=hour,minute=minute)
+            selected=c.scheduled_slot(now)
+            self.assertEqual(selected,slot)
+            self.assertGreater(dt.datetime.combine(now.date(),c.SLOTS[selected],c.SAST),now)
+
 
 if __name__=='__main__':
     unittest.main()

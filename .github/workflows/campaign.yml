@@ -2,7 +2,9 @@ name: Cloud video campaign
 
 on:
   schedule:
+    - cron: '53 4 * * *'
     - cron: '23 9,15 * * *'
+    - cron: '20 6 * * *'
     - cron: '50 10,16 * * *'
   workflow_dispatch:
     inputs:
@@ -46,7 +48,7 @@ jobs:
             exit 0
           fi
           mode="${REQUESTED_MODE:-scheduled}"
-          if [[ "$EVENT_SCHEDULE" == '50 10,16 * * *' ]]; then mode=audit; fi
+          if [[ "$EVENT_SCHEDULE" == '50 10,16 * * *' || "$EVENT_SCHEDULE" == '20 6 * * *' ]]; then mode=audit; fi
           if [[ "$mode" == smoke ]]; then export ALLOW_SMOKE=1; fi
           python3 campaign.py --mode "$mode"
           if [[ "$campaign_day" == '2026-12-07' && "$mode" == audit && "$(TZ=UTC date +%H)" -ge 16 ]]; then

@@ -322,8 +322,15 @@ def review():
         'notes': 'Early Buffer metrics can lag or be unavailable. Preserve variety; no raw metrics stored.'}
     try:
         posts = campaign_posts(existing_posts(now=now, metrics=True))
+        def recent_snapshot(post):
+            try:
+                updated = dt.datetime.fromisoformat(post['metricsUpdatedAt'].replace('Z', '+00:00'))
+                return now - dt.timedelta(hours=48) <= updated <= now + dt.timedelta(minutes=5)
+            except (KeyError, TypeError, ValueError, AttributeError):
+                return False
         for service, channel in CHANNELS.items():
             eligible = [p for p in posts if p['channelId'] == channel and p['status'] == 'sent'
+                and recent_snapshot(p)
                 and p.get('dueAt') and dt.datetime.fromisoformat(p['dueAt'].replace('Z', '+00:00'))
                 <= now - dt.timedelta(hours=48)]
             for kind in ('views', 'impressions', 'reach'):

@@ -132,6 +132,7 @@ class CampaignSafety(unittest.TestCase):
             'dueAt':(now-dt.timedelta(days=3)).isoformat(),
             'text':'Unit price check\nutm_campaign=evergreen_shopping_tips',
             'externalLink':'https://www.youtube.com/shorts/example'+str(i),
+            'metricsUpdatedAt':now.isoformat(),
             'metrics':[{'type':'views','value':100+i,'unit':'count'}]} for i in range(3)]
         with patch.object(c,'existing_posts',return_value=posts), patch.object(c,'write_public_json') as write:
             c.review()
@@ -141,6 +142,12 @@ class CampaignSafety(unittest.TestCase):
             self.assertNotIn('metrics',report)
             self.assertNotIn('value',json.dumps(report))
             self.assertEqual(write.call_count,2)
+        for post in posts:
+            post['metricsUpdatedAt']=(now-dt.timedelta(days=4)).isoformat()
+        with patch.object(c,'existing_posts',return_value=posts), patch.object(c,'write_public_json') as write:
+            c.review()
+            self.assertEqual(write.call_count,1)
+            self.assertEqual(write.call_args[0][1]['status'],'insufficient_data')
 
     def test_rolling_audit_does_not_require_old_buffer_history(self):
         real_datetime = dt.datetime

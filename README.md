@@ -20,7 +20,7 @@ Preparation runs at **06:53, 11:23 and 17:23 SAST**; publication checks at **08:
 
 Publishing checks cover the last seven calendar days. API requests are date-filtered so a growing lifetime history does not exhaust the bound. Historical release ledgers remain available. Exact channel identity, late-slot refusal, pending-send duplicate protection and MP4 validation remain enforced. A missed earlier slot is reported without preventing the next distinct video. Uncertain sends stop for reconciliation instead of blind retries.
 
-Every **Sunday at 19:10 SAST**, an optional review reads Buffer post metrics. It ranks only within the same channel and needs at least three comparable posts aged 48 hours. Missing metrics are never treated as zero. Buffer metrics are early and may lag or be unavailable; no website-conversion or guaranteed-growth claim is inferred. Unavailable review signals do not stop publishing.
+Every **Sunday at 19:10 SAST**, an optional review reads Buffer post metrics. It ranks only within the same channel and needs at least three comparable posts aged 48 hours, with metric snapshots refreshed within the last 48 hours. Missing or stale metrics are not used for ranking or treated as zero. Buffer metrics are early and may lag or be unavailable; no website-conversion or guaranteed-growth claim is inferred. Unavailable review signals do not stop publishing.
 
 Public review files contain coarse content themes and already-public example titles/links, never raw private metric values. Useful themes influence at most two of every five slots in newly prepared future plans; the remainder retain variety. Existing planned and queued posts are unchanged.
 

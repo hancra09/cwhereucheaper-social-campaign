@@ -1,0 +1,52 @@
+name: Cloud video campaign
+
+on:
+  schedule:
+    - cron: '23 9,15 * * *'
+    - cron: '50 10,16 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Campaign action
+        type: choice
+        default: preflight
+        options: [preflight, bootstrap, smoke, audit, scheduled]
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: cwuc-campaign
+  cancel-in-progress: false
+
+jobs:
+  campaign:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+      GH_TOKEN: ${{ github.token }}
+      REQUESTED_MODE: ${{ inputs.mode }}
+      EVENT_SCHEDULE: ${{ github.event.schedule }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Check campaign safety guards
+        run: python3 -m unittest -q test_campaign.py
+      - name: Run bounded cloud workflow
+        run: |
+          set -euo pipefail
+          command -v ffmpeg
+          command -v ffprobe
+          campaign_day=$(TZ=Africa/Johannesburg date +%F)
+          if [[ "$campaign_day" > '2026-12-07' ]]; then
+            gh api --method PUT repos/hancra09/cwhereucheaper-social-campaign/actions/workflows/campaign.yml/disable
+            exit 0
+          fi
+          mode="${REQUESTED_MODE:-scheduled}"
+          if [[ "$EVENT_SCHEDULE" == '50 10,16 * * *' ]]; then mode=audit; fi
+          if [[ "$mode" == smoke ]]; then export ALLOW_SMOKE=1; fi
+          python3 campaign.py --mode "$mode"
+          if [[ "$campaign_day" == '2026-12-07' && "$mode" == audit && "$(TZ=UTC date +%H)" -ge 16 ]]; then
+            gh api --method PUT repos/hancra09/cwhereucheaper-social-campaign/actions/workflows/campaign.yml/disable
+          fi

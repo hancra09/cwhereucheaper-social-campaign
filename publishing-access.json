@@ -1,0 +1,5 @@
+{
+  "expires": "2027-01-06",
+  "permissions": ["account:read", "posts:read", "posts:write", "insights:read"],
+  "note": "Metadata only. The key value exists solely in the encrypted GitHub Actions secret."
+}

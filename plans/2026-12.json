@@ -1,0 +1,846 @@
+{
+  "month": "2026-12",
+  "generator_version": 1,
+  "content_kind": "Curated evergreen education with varied hooks and wording",
+  "preferred_themes": [],
+  "items": [
+    {
+      "date": "2026-12-01",
+      "slot": "early",
+      "title": "Before you buy: Pause before an extra purchase",
+      "script": "Before your next purchase, try this check. Before adding an unplanned item, decide what you will use it for. A lower price is not a saving on something you did not need. Take a moment to check rather than guess. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Before adding an unplanned item, decide what you will use it for. A lower price is not a saving on something you did not need. Keep the comparison tied to your actual needs.",
+      "style": "Educational",
+      "theme": "shopping-check"
+    },
+    {
+      "date": "2026-12-01",
+      "slot": "am",
+      "title": "A practical buying habit: Think about freezer space",
+      "script": "Try this practical habit when comparing products. Before buying extra food for freezing, check available space and the product instructions. A bulk offer needs a practical storage plan. Keep a short note of the options you compare. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Before buying extra food for freezing, check available space and the product instructions. A bulk offer needs a practical storage plan. Check the details again when you are ready to buy.",
+      "style": "Storytelling",
+      "theme": "waste"
+    },
+    {
+      "date": "2026-12-01",
+      "slot": "pm",
+      "title": "A useful second look: Buy the amount you will use",
+      "script": "A useful second look starts with the details. A large pack only helps when you can use its contents. Consider storage space and likely use before paying for extra quantity. Take a moment to check rather than guess. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "A large pack only helps when you can use its contents. Consider storage space and likely use before paying for extra quantity. Let the full comparison guide your choice.",
+      "style": "Playful",
+      "theme": "waste"
+    },
+    {
+      "date": "2026-12-02",
+      "slot": "early",
+      "title": "Before you buy: Read the minimum purchase",
+      "script": "Before your next purchase, try this check. Check whether an offer requires a minimum quantity or basket total. Compare the full amount you must spend, not just the advertised unit price. Let the full comparison guide your choice. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Check whether an offer requires a minimum quantity or basket total. Compare the full amount you must spend, not just the advertised unit price. Check the details again when you are ready to buy.",
+      "style": "Educational",
+      "theme": "offers"
+    },
+    {
+      "date": "2026-12-02",
+      "slot": "am",
+      "title": "Your next price check: Price the collection trip",
+      "script": "Give your next price check a clear starting point. Collection can avoid a delivery fee, but travel still takes time and money. Include the trip when comparing your options. Take a moment to check rather than guess. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Collection can avoid a delivery fee, but travel still takes time and money. Include the trip when comparing your options. Keep the comparison tied to your actual needs.",
+      "style": "Storytelling",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-02",
+      "slot": "pm",
+      "title": "Check this detail: Recheck before payment",
+      "script": "Here is a detail worth checking before buying. Review quantities, delivery choices and the final amount before paying. A useful comparison should end with the price you actually agree to pay. Take a moment to check rather than guess. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "Review quantities, delivery choices and the final amount before paying. A useful comparison should end with the price you actually agree to pay. Check the details again when you are ready to buy.",
+      "style": "Playful",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-03",
+      "slot": "early",
+      "title": "Shopping list reminder: Compare a realistic basket",
+      "script": "Keep this reminder beside your shopping list. Compare the products and quantities your household will actually use. A cheaper basket is only useful when it still meets your needs. A clear comparison is more useful than a rushed one. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Compare the products and quantities your household will actually use. A cheaper basket is only useful when it still meets your needs. Take a moment to check rather than guess.",
+      "style": "Educational",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-03",
+      "slot": "am",
+      "title": "Your next price check: Write down the full comparison",
+      "script": "Give your next price check a clear starting point. Record the retailer, product, quantity and final price together. A short note makes it easier to compare the same things later. Let the full comparison guide your choice. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Record the retailer, product, quantity and final price together. A short note makes it easier to compare the same things later. Let the full comparison guide your choice.",
+      "style": "Storytelling",
+      "theme": "shopping-check"
+    },
+    {
+      "date": "2026-12-03",
+      "slot": "pm",
+      "title": "Pause at checkout: Look beyond the photograph",
+      "script": "Pause for a quick check before committing. Use the written product description, model and quantity to check a match. A familiar photograph alone is not enough evidence. A clear comparison is more useful than a rushed one. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Use the written product description, model and quantity to check a match. A familiar photograph alone is not enough evidence. A clear comparison is more useful than a rushed one.",
+      "style": "Playful",
+      "theme": "equivalence"
+    },
+    {
+      "date": "2026-12-04",
+      "slot": "early",
+      "title": "Before you buy: Read the power requirements",
+      "script": "Before your next purchase, try this check. Check the product specifications and intended use before buying an appliance. A cheaper model still needs to do the job you require. Let the full comparison guide your choice. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "Check the product specifications and intended use before buying an appliance. A cheaper model still needs to do the job you require. A clear comparison is more useful than a rushed one.",
+      "style": "Educational",
+      "theme": "equivalence"
+    },
+    {
+      "date": "2026-12-04",
+      "slot": "am",
+      "title": "Look a little closer: Check included accessories",
+      "script": "Look a little closer before choosing a price. Read what comes in the box before comparing bundles. One listing may include accessories that another sells separately. Keep a short note of the options you compare. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Read what comes in the box before comparing bundles. One listing may include accessories that another sells separately. Keep a short note of the options you compare.",
+      "style": "Storytelling",
+      "theme": "equivalence"
+    },
+    {
+      "date": "2026-12-04",
+      "slot": "pm",
+      "title": "A clearer comparison: Check who qualifies",
+      "script": "Make your next comparison easier to understand. Read the conditions for a member or promotional price. Make sure you qualify before using that price in your comparison. Let the full comparison guide your choice. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "Read the conditions for a member or promotional price. Make sure you qualify before using that price in your comparison. Check the details again when you are ready to buy.",
+      "style": "Playful",
+      "theme": "offers"
+    },
+    {
+      "date": "2026-12-05",
+      "slot": "early",
+      "title": "Before you buy: Compare a realistic basket",
+      "script": "Before your next purchase, try this check. Compare the products and quantities your household will actually use. A cheaper basket is only useful when it still meets your needs. Let the full comparison guide your choice. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Compare the products and quantities your household will actually use. A cheaper basket is only useful when it still meets your needs. Take a moment to check rather than guess.",
+      "style": "Educational",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-05",
+      "slot": "am",
+      "title": "Your next price check: Think about freezer space",
+      "script": "Give your next price check a clear starting point. Before buying extra food for freezing, check available space and the product instructions. A bulk offer needs a practical storage plan. Keep the comparison tied to your actual needs. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Before buying extra food for freezing, check available space and the product instructions. A bulk offer needs a practical storage plan. Keep the comparison tied to your actual needs.",
+      "style": "Storytelling",
+      "theme": "waste"
+    },
+    {
+      "date": "2026-12-05",
+      "slot": "pm",
+      "title": "Look a little closer: Read the refill quantity",
+      "script": "Look a little closer before choosing a price. A refill and a full bottle can hold different amounts. Compare their usable quantity and total price before deciding which offers better value. A clear comparison is more useful than a rushed one. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "A refill and a full bottle can hold different amounts. Compare their usable quantity and total price before deciding which offers better value. Keep a short note of the options you compare.",
+      "style": "Playful",
+      "theme": "unit-price"
+    },
+    {
+      "date": "2026-12-06",
+      "slot": "early",
+      "title": "A practical buying habit: Check availability before travelling",
+      "script": "Try this practical habit when comparing products. Check the retailer listing or contact the store before making a special trip. An advertised product may not be available at every branch. Let the full comparison guide your choice. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Check the retailer listing or contact the store before making a special trip. An advertised product may not be available at every branch. Take a moment to check rather than guess.",
+      "style": "Educational",
+      "theme": "shopping-check"
+    },
+    {
+      "date": "2026-12-06",
+      "slot": "am",
+      "title": "Read before choosing: Plan the next few meals",
+      "script": "Read the details before choosing between offers. Build a short meal plan around ingredients already at home. Then compare prices for the missing ingredients rather than starting with sale stickers. A clear comparison is more useful than a rushed one. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Build a short meal plan around ingredients already at home. Then compare prices for the missing ingredients rather than starting with sale stickers. Keep a short note of the options you compare.",
+      "style": "Storytelling",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-06",
+      "slot": "pm",
+      "title": "Before you buy: Check included accessories",
+      "script": "Before your next purchase, try this check. Read what comes in the box before comparing bundles. One listing may include accessories that another sells separately. Keep a short note of the options you compare. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Read what comes in the box before comparing bundles. One listing may include accessories that another sells separately. Keep a short note of the options you compare.",
+      "style": "Playful",
+      "theme": "equivalence"
+    },
+    {
+      "date": "2026-12-07",
+      "slot": "early",
+      "title": "Pause at checkout: Watch the package size",
+      "script": "Pause for a quick check before committing. When a familiar item looks cheaper, check its weight or volume again. A smaller package can change the comparison even when the shelf price falls. Let the full comparison guide your choice. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "When a familiar item looks cheaper, check its weight or volume again. A smaller package can change the comparison even when the shelf price falls. Check the details again when you are ready to buy.",
+      "style": "Educational",
+      "theme": "unit-price"
+    },
+    {
+      "date": "2026-12-07",
+      "slot": "am",
+      "title": "Read before choosing: Recheck before payment",
+      "script": "Read the details before choosing between offers. Review quantities, delivery choices and the final amount before paying. A useful comparison should end with the price you actually agree to pay. Keep the comparison tied to your actual needs. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Review quantities, delivery choices and the final amount before paying. A useful comparison should end with the price you actually agree to pay. Take a moment to check rather than guess.",
+      "style": "Storytelling",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-07",
+      "slot": "pm",
+      "title": "A clearer comparison: Compare bundles with care",
+      "script": "Make your next comparison easier to understand. List the items in a bundle and decide which you need. Extra items only add value when they are useful to you. Keep the comparison tied to your actual needs. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "List the items in a bundle and decide which you need. Extra items only add value when they are useful to you. Keep a short note of the options you compare.",
+      "style": "Playful",
+      "theme": "offers"
+    },
+    {
+      "date": "2026-12-08",
+      "slot": "early",
+      "title": "Pause at checkout: Check storage instructions",
+      "script": "Pause for a quick check before committing. Read storage instructions before choosing a bulk purchase. A product that needs conditions you cannot provide may become an expensive mistake. Let the full comparison guide your choice. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Read storage instructions before choosing a bulk purchase. A product that needs conditions you cannot provide may become an expensive mistake. A clear comparison is more useful than a rushed one.",
+      "style": "Educational",
+      "theme": "waste"
+    },
+    {
+      "date": "2026-12-08",
+      "slot": "am",
+      "title": "Plan then compare: Pause before an extra purchase",
+      "script": "Plan the purchase, then compare the options. Before adding an unplanned item, decide what you will use it for. A lower price is not a saving on something you did not need. Keep a short note of the options you compare. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "Before adding an unplanned item, decide what you will use it for. A lower price is not a saving on something you did not need. Take a moment to check rather than guess.",
+      "style": "Storytelling",
+      "theme": "shopping-check"
+    },
+    {
+      "date": "2026-12-08",
+      "slot": "pm",
+      "title": "Small shopping check: Compare the final total",
+      "script": "One small check can improve a shopping decision. Add delivery and any checkout charges before choosing a retailer. The lowest item price does not always produce the lowest final total. Check the details again when you are ready to buy. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Add delivery and any checkout charges before choosing a retailer. The lowest item price does not always produce the lowest final total. Let the full comparison guide your choice.",
+      "style": "Playful",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-09",
+      "slot": "early",
+      "title": "A clearer comparison: Keep a useful backup choice",
+      "script": "Make your next comparison easier to understand. Choose an acceptable alternative before shopping. If your first choice is unavailable, compare the substitute instead of buying the first replacement you see. A clear comparison is more useful than a rushed one. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Choose an acceptable alternative before shopping. If your first choice is unavailable, compare the substitute instead of buying the first replacement you see. Keep the comparison tied to your actual needs.",
+      "style": "Educational",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-09",
+      "slot": "am",
+      "title": "Pause at checkout: Check the concentrated version",
+      "script": "Pause for a quick check before committing. For a concentrate, check the dilution instructions and usable amount. Comparing bottle sizes alone can miss an important difference. Keep the comparison tied to your actual needs. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "For a concentrate, check the dilution instructions and usable amount. Comparing bottle sizes alone can miss an important difference. Keep a short note of the options you compare.",
+      "style": "Storytelling",
+      "theme": "unit-price"
+    },
+    {
+      "date": "2026-12-09",
+      "slot": "pm",
+      "title": "A useful second look: Count what is inside",
+      "script": "A useful second look starts with the details. Check both the number of items and the size of each one. Similar looking multipacks can contain very different total quantities. Let the full comparison guide your choice. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Check both the number of items and the size of each one. Similar looking multipacks can contain very different total quantities. Let the full comparison guide your choice.",
+      "style": "Playful",
+      "theme": "unit-price"
+    },
+    {
+      "date": "2026-12-10",
+      "slot": "early",
+      "title": "Plan then compare: Keep alternatives comparable",
+      "script": "Plan the purchase, then compare the options. If you change brands, check quantity and intended use again. A replacement should be judged on what you will actually receive. Let the full comparison guide your choice. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "If you change brands, check quantity and intended use again. A replacement should be judged on what you will actually receive. Keep the comparison tied to your actual needs.",
+      "style": "Educational",
+      "theme": "shopping-check"
+    },
+    {
+      "date": "2026-12-10",
+      "slot": "am",
+      "title": "Small shopping check: Check the offer period",
+      "script": "One small check can improve a shopping decision. Check the offer dates and any stock conditions before planning a purchase. Reconfirm the price when you are ready to buy. Keep a short note of the options you compare. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Check the offer dates and any stock conditions before planning a purchase. Reconfirm the price when you are ready to buy. A clear comparison is more useful than a rushed one.",
+      "style": "Storytelling",
+      "theme": "offers"
+    },
+    {
+      "date": "2026-12-10",
+      "slot": "pm",
+      "title": "A useful second look: Compare the final total",
+      "script": "A useful second look starts with the details. Add delivery and any checkout charges before choosing a retailer. The lowest item price does not always produce the lowest final total. A clear comparison is more useful than a rushed one. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Add delivery and any checkout charges before choosing a retailer. The lowest item price does not always produce the lowest final total. Let the full comparison guide your choice.",
+      "style": "Playful",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-11",
+      "slot": "early",
+      "title": "Your next price check: Compare useful capacity",
+      "script": "Give your next price check a clear starting point. Choose capacity that fits your normal use and available space. Paying for extra size is not automatically a saving. Keep the comparison tied to your actual needs. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Choose capacity that fits your normal use and available space. Paying for extra size is not automatically a saving. Keep a short note of the options you compare.",
+      "style": "Educational",
+      "theme": "ownership"
+    },
+    {
+      "date": "2026-12-11",
+      "slot": "am",
+      "title": "Plan then compare: Check replacement supplies",
+      "script": "Plan the purchase, then compare the options. Before buying a device, check the availability and cost of its compatible consumables. A low starting price may leave important future costs unanswered. A clear comparison is more useful than a rushed one. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Before buying a device, check the availability and cost of its compatible consumables. A low starting price may leave important future costs unanswered. Keep the comparison tied to your actual needs.",
+      "style": "Storytelling",
+      "theme": "ownership"
+    },
+    {
+      "date": "2026-12-11",
+      "slot": "pm",
+      "title": "Before you buy: Write down the full comparison",
+      "script": "Before your next purchase, try this check. Record the retailer, product, quantity and final price together. A short note makes it easier to compare the same things later. Take a moment to check rather than guess. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Record the retailer, product, quantity and final price together. A short note makes it easier to compare the same things later. Let the full comparison guide your choice.",
+      "style": "Playful",
+      "theme": "shopping-check"
+    },
+    {
+      "date": "2026-12-12",
+      "slot": "early",
+      "title": "A useful second look: Keep a useful backup choice",
+      "script": "A useful second look starts with the details. Choose an acceptable alternative before shopping. If your first choice is unavailable, compare the substitute instead of buying the first replacement you see. Keep a short note of the options you compare. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Choose an acceptable alternative before shopping. If your first choice is unavailable, compare the substitute instead of buying the first replacement you see. A clear comparison is more useful than a rushed one.",
+      "style": "Educational",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-12",
+      "slot": "am",
+      "title": "Read before choosing: Compare a realistic basket",
+      "script": "Read the details before choosing between offers. Compare the products and quantities your household will actually use. A cheaper basket is only useful when it still meets your needs. Check the details again when you are ready to buy. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "Compare the products and quantities your household will actually use. A cheaper basket is only useful when it still meets your needs. Check the details again when you are ready to buy.",
+      "style": "Storytelling",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-12",
+      "slot": "pm",
+      "title": "Before you buy: Keep alternatives comparable",
+      "script": "Before your next purchase, try this check. If you change brands, check quantity and intended use again. A replacement should be judged on what you will actually receive. A clear comparison is more useful than a rushed one. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "If you change brands, check quantity and intended use again. A replacement should be judged on what you will actually receive. Keep a short note of the options you compare.",
+      "style": "Playful",
+      "theme": "shopping-check"
+    },
+    {
+      "date": "2026-12-13",
+      "slot": "early",
+      "title": "A clearer comparison: Price the collection trip",
+      "script": "Make your next comparison easier to understand. Collection can avoid a delivery fee, but travel still takes time and money. Include the trip when comparing your options. Take a moment to check rather than guess. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Collection can avoid a delivery fee, but travel still takes time and money. Include the trip when comparing your options. A clear comparison is more useful than a rushed one.",
+      "style": "Educational",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-13",
+      "slot": "am",
+      "title": "Shopping list reminder: Read the minimum purchase",
+      "script": "Keep this reminder beside your shopping list. Check whether an offer requires a minimum quantity or basket total. Compare the full amount you must spend, not just the advertised unit price. Check the details again when you are ready to buy. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Check whether an offer requires a minimum quantity or basket total. Compare the full amount you must spend, not just the advertised unit price. Take a moment to check rather than guess.",
+      "style": "Storytelling",
+      "theme": "offers"
+    },
+    {
+      "date": "2026-12-13",
+      "slot": "pm",
+      "title": "A practical buying habit: Check the cupboard first",
+      "script": "Try this practical habit when comparing products. Look through your cupboards before making a shopping list. Finding something you already own can remove an unnecessary purchase altogether. Keep a short note of the options you compare. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Look through your cupboards before making a shopping list. Finding something you already own can remove an unnecessary purchase altogether. Keep a short note of the options you compare.",
+      "style": "Playful",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-14",
+      "slot": "early",
+      "title": "A practical buying habit: Read the refill quantity",
+      "script": "Try this practical habit when comparing products. A refill and a full bottle can hold different amounts. Compare their usable quantity and total price before deciding which offers better value. Take a moment to check rather than guess. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "A refill and a full bottle can hold different amounts. Compare their usable quantity and total price before deciding which offers better value. Keep the comparison tied to your actual needs.",
+      "style": "Educational",
+      "theme": "unit-price"
+    },
+    {
+      "date": "2026-12-14",
+      "slot": "am",
+      "title": "Your next price check: Read the return terms",
+      "script": "Give your next price check a clear starting point. Review the retailer return terms and product condition before buying. Keep the receipt and product details so you have a useful record. Take a moment to check rather than guess. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Review the retailer return terms and product condition before buying. Keep the receipt and product details so you have a useful record. Keep the comparison tied to your actual needs.",
+      "style": "Storytelling",
+      "theme": "ownership"
+    },
+    {
+      "date": "2026-12-14",
+      "slot": "pm",
+      "title": "Small shopping check: Read the power requirements",
+      "script": "One small check can improve a shopping decision. Check the product specifications and intended use before buying an appliance. A cheaper model still needs to do the job you require. Keep a short note of the options you compare. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Check the product specifications and intended use before buying an appliance. A cheaper model still needs to do the job you require. Check the details again when you are ready to buy.",
+      "style": "Playful",
+      "theme": "equivalence"
+    },
+    {
+      "date": "2026-12-15",
+      "slot": "early",
+      "title": "A practical buying habit: Check a delivery threshold",
+      "script": "Try this practical habit when comparing products. Before adding extras to unlock delivery, compare the extra spending with the delivery charge. Only add items you already need. Keep the comparison tied to your actual needs. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Before adding extras to unlock delivery, compare the extra spending with the delivery charge. Only add items you already need. Take a moment to check rather than guess.",
+      "style": "Educational",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-15",
+      "slot": "am",
+      "title": "Read before choosing: Check the concentrated version",
+      "script": "Read the details before choosing between offers. For a concentrate, check the dilution instructions and usable amount. Comparing bottle sizes alone can miss an important difference. A clear comparison is more useful than a rushed one. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "For a concentrate, check the dilution instructions and usable amount. Comparing bottle sizes alone can miss an important difference. A clear comparison is more useful than a rushed one.",
+      "style": "Storytelling",
+      "theme": "unit-price"
+    },
+    {
+      "date": "2026-12-15",
+      "slot": "pm",
+      "title": "Before you buy: Check the cupboard first",
+      "script": "Before your next purchase, try this check. Look through your cupboards before making a shopping list. Finding something you already own can remove an unnecessary purchase altogether. Check the details again when you are ready to buy. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "Look through your cupboards before making a shopping list. Finding something you already own can remove an unnecessary purchase altogether. Take a moment to check rather than guess.",
+      "style": "Playful",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-16",
+      "slot": "early",
+      "title": "Look a little closer: Think beyond purchase day",
+      "script": "Look a little closer before choosing a price. For a reusable product, consider the supplies it needs and how you will use it. The purchase price is only one part of the decision. Keep a short note of the options you compare. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "For a reusable product, consider the supplies it needs and how you will use it. The purchase price is only one part of the decision. Check the details again when you are ready to buy.",
+      "style": "Educational",
+      "theme": "ownership"
+    },
+    {
+      "date": "2026-12-16",
+      "slot": "am",
+      "title": "Plan then compare: Read the refill quantity",
+      "script": "Plan the purchase, then compare the options. A refill and a full bottle can hold different amounts. Compare their usable quantity and total price before deciding which offers better value. Keep a short note of the options you compare. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "A refill and a full bottle can hold different amounts. Compare their usable quantity and total price before deciding which offers better value. A clear comparison is more useful than a rushed one.",
+      "style": "Storytelling",
+      "theme": "unit-price"
+    },
+    {
+      "date": "2026-12-16",
+      "slot": "pm",
+      "title": "Read before choosing: Keep a useful backup choice",
+      "script": "Read the details before choosing between offers. Choose an acceptable alternative before shopping. If your first choice is unavailable, compare the substitute instead of buying the first replacement you see. A clear comparison is more useful than a rushed one. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Choose an acceptable alternative before shopping. If your first choice is unavailable, compare the substitute instead of buying the first replacement you see. Check the details again when you are ready to buy.",
+      "style": "Playful",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-17",
+      "slot": "early",
+      "title": "Look a little closer: Compare the final total",
+      "script": "Look a little closer before choosing a price. Add delivery and any checkout charges before choosing a retailer. The lowest item price does not always produce the lowest final total. A clear comparison is more useful than a rushed one. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Add delivery and any checkout charges before choosing a retailer. The lowest item price does not always produce the lowest final total. Keep the comparison tied to your actual needs.",
+      "style": "Educational",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-17",
+      "slot": "am",
+      "title": "Read before choosing: Look at split deliveries",
+      "script": "Read the details before choosing between offers. A basket split across retailers may involve more than one delivery charge. Compare the combined total with buying from one place. Keep a short note of the options you compare. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "A basket split across retailers may involve more than one delivery charge. Compare the combined total with buying from one place. Let the full comparison guide your choice.",
+      "style": "Storytelling",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-17",
+      "slot": "pm",
+      "title": "Small shopping check: Recheck before payment",
+      "script": "One small check can improve a shopping decision. Review quantities, delivery choices and the final amount before paying. A useful comparison should end with the price you actually agree to pay. Keep the comparison tied to your actual needs. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Review quantities, delivery choices and the final amount before paying. A useful comparison should end with the price you actually agree to pay. Let the full comparison guide your choice.",
+      "style": "Playful",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-18",
+      "slot": "early",
+      "title": "Check this detail: Price the collection trip",
+      "script": "Here is a detail worth checking before buying. Collection can avoid a delivery fee, but travel still takes time and money. Include the trip when comparing your options. Keep a short note of the options you compare. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "Collection can avoid a delivery fee, but travel still takes time and money. Include the trip when comparing your options. A clear comparison is more useful than a rushed one.",
+      "style": "Educational",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-18",
+      "slot": "am",
+      "title": "Pause at checkout: Think beyond purchase day",
+      "script": "Pause for a quick check before committing. For a reusable product, consider the supplies it needs and how you will use it. The purchase price is only one part of the decision. Take a moment to check rather than guess. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "For a reusable product, consider the supplies it needs and how you will use it. The purchase price is only one part of the decision. Let the full comparison guide your choice.",
+      "style": "Storytelling",
+      "theme": "ownership"
+    },
+    {
+      "date": "2026-12-18",
+      "slot": "pm",
+      "title": "Before you buy: Read a discount carefully",
+      "script": "Before your next purchase, try this check. A large percentage discount does not establish the best current price. Compare the actual item and final total across your available options. Check the details again when you are ready to buy. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "A large percentage discount does not establish the best current price. Compare the actual item and final total across your available options. Take a moment to check rather than guess.",
+      "style": "Playful",
+      "theme": "offers"
+    },
+    {
+      "date": "2026-12-19",
+      "slot": "early",
+      "title": "A clearer comparison: Read the minimum purchase",
+      "script": "Make your next comparison easier to understand. Check whether an offer requires a minimum quantity or basket total. Compare the full amount you must spend, not just the advertised unit price. Check the details again when you are ready to buy. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Check whether an offer requires a minimum quantity or basket total. Compare the full amount you must spend, not just the advertised unit price. A clear comparison is more useful than a rushed one.",
+      "style": "Educational",
+      "theme": "offers"
+    },
+    {
+      "date": "2026-12-19",
+      "slot": "am",
+      "title": "A clearer comparison: Read the refill quantity",
+      "script": "Make your next comparison easier to understand. A refill and a full bottle can hold different amounts. Compare their usable quantity and total price before deciding which offers better value. Keep the comparison tied to your actual needs. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "A refill and a full bottle can hold different amounts. Compare their usable quantity and total price before deciding which offers better value. Take a moment to check rather than guess.",
+      "style": "Storytelling",
+      "theme": "unit-price"
+    },
+    {
+      "date": "2026-12-19",
+      "slot": "pm",
+      "title": "Small shopping check: Keep a useful backup choice",
+      "script": "One small check can improve a shopping decision. Choose an acceptable alternative before shopping. If your first choice is unavailable, compare the substitute instead of buying the first replacement you see. Let the full comparison guide your choice. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "Choose an acceptable alternative before shopping. If your first choice is unavailable, compare the substitute instead of buying the first replacement you see. Let the full comparison guide your choice.",
+      "style": "Playful",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-20",
+      "slot": "early",
+      "title": "Read before choosing: Check a delivery threshold",
+      "script": "Read the details before choosing between offers. Before adding extras to unlock delivery, compare the extra spending with the delivery charge. Only add items you already need. Keep the comparison tied to your actual needs. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Before adding extras to unlock delivery, compare the extra spending with the delivery charge. Only add items you already need. Let the full comparison guide your choice.",
+      "style": "Educational",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-20",
+      "slot": "am",
+      "title": "Check this detail: Check included accessories",
+      "script": "Here is a detail worth checking before buying. Read what comes in the box before comparing bundles. One listing may include accessories that another sells separately. Keep the comparison tied to your actual needs. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Read what comes in the box before comparing bundles. One listing may include accessories that another sells separately. Check the details again when you are ready to buy.",
+      "style": "Storytelling",
+      "theme": "equivalence"
+    },
+    {
+      "date": "2026-12-20",
+      "slot": "pm",
+      "title": "Shopping list reminder: Compare bundles with care",
+      "script": "Keep this reminder beside your shopping list. List the items in a bundle and decide which you need. Extra items only add value when they are useful to you. Keep the comparison tied to your actual needs. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "List the items in a bundle and decide which you need. Extra items only add value when they are useful to you. Check the details again when you are ready to buy.",
+      "style": "Playful",
+      "theme": "offers"
+    },
+    {
+      "date": "2026-12-21",
+      "slot": "early",
+      "title": "Shopping list reminder: Buy the amount you will use",
+      "script": "Keep this reminder beside your shopping list. A large pack only helps when you can use its contents. Consider storage space and likely use before paying for extra quantity. Check the details again when you are ready to buy. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "A large pack only helps when you can use its contents. Consider storage space and likely use before paying for extra quantity. Take a moment to check rather than guess.",
+      "style": "Educational",
+      "theme": "waste"
+    },
+    {
+      "date": "2026-12-21",
+      "slot": "am",
+      "title": "Small shopping check: Think beyond purchase day",
+      "script": "One small check can improve a shopping decision. For a reusable product, consider the supplies it needs and how you will use it. The purchase price is only one part of the decision. Keep the comparison tied to your actual needs. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "For a reusable product, consider the supplies it needs and how you will use it. The purchase price is only one part of the decision. Check the details again when you are ready to buy.",
+      "style": "Storytelling",
+      "theme": "ownership"
+    },
+    {
+      "date": "2026-12-21",
+      "slot": "pm",
+      "title": "A practical buying habit: Check the offer period",
+      "script": "Try this practical habit when comparing products. Check the offer dates and any stock conditions before planning a purchase. Reconfirm the price when you are ready to buy. Keep a short note of the options you compare. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Check the offer dates and any stock conditions before planning a purchase. Reconfirm the price when you are ready to buy. Check the details again when you are ready to buy.",
+      "style": "Playful",
+      "theme": "offers"
+    },
+    {
+      "date": "2026-12-22",
+      "slot": "early",
+      "title": "Check this detail: Compare the product variant",
+      "script": "Here is a detail worth checking before buying. Match the size, variant and quantity before comparing prices. A different formulation or model can make a lower price a different offer. Keep the comparison tied to your actual needs. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Match the size, variant and quantity before comparing prices. A different formulation or model can make a lower price a different offer. Let the full comparison guide your choice.",
+      "style": "Educational",
+      "theme": "equivalence"
+    },
+    {
+      "date": "2026-12-22",
+      "slot": "am",
+      "title": "Your next price check: Check who qualifies",
+      "script": "Give your next price check a clear starting point. Read the conditions for a member or promotional price. Make sure you qualify before using that price in your comparison. Keep the comparison tied to your actual needs. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Read the conditions for a member or promotional price. Make sure you qualify before using that price in your comparison. Let the full comparison guide your choice.",
+      "style": "Storytelling",
+      "theme": "offers"
+    },
+    {
+      "date": "2026-12-22",
+      "slot": "pm",
+      "title": "Your next price check: Make one clear price check",
+      "script": "Give your next price check a clear starting point. Start with a specific product, size or model rather than a vague category. A clear description makes the comparison more useful. Keep a short note of the options you compare. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Start with a specific product, size or model rather than a vague category. A clear description makes the comparison more useful. Check the details again when you are ready to buy.",
+      "style": "Playful",
+      "theme": "shopping-check"
+    },
+    {
+      "date": "2026-12-23",
+      "slot": "early",
+      "title": "A clearer comparison: Check the date label",
+      "script": "Make your next comparison easier to understand. Read the date label and storage instructions before buying. Choose an amount you can use appropriately, rather than letting a discount choose the quantity. Keep the comparison tied to your actual needs. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Read the date label and storage instructions before buying. Choose an amount you can use appropriately, rather than letting a discount choose the quantity. Take a moment to check rather than guess.",
+      "style": "Educational",
+      "theme": "waste"
+    },
+    {
+      "date": "2026-12-23",
+      "slot": "am",
+      "title": "A practical buying habit: Keep a useful backup choice",
+      "script": "Try this practical habit when comparing products. Choose an acceptable alternative before shopping. If your first choice is unavailable, compare the substitute instead of buying the first replacement you see. Keep the comparison tied to your actual needs. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "Choose an acceptable alternative before shopping. If your first choice is unavailable, compare the substitute instead of buying the first replacement you see. Check the details again when you are ready to buy.",
+      "style": "Storytelling",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-23",
+      "slot": "pm",
+      "title": "Small shopping check: Think about freezer space",
+      "script": "One small check can improve a shopping decision. Before buying extra food for freezing, check available space and the product instructions. A bulk offer needs a practical storage plan. A clear comparison is more useful than a rushed one. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "Before buying extra food for freezing, check available space and the product instructions. A bulk offer needs a practical storage plan. Take a moment to check rather than guess.",
+      "style": "Playful",
+      "theme": "waste"
+    },
+    {
+      "date": "2026-12-24",
+      "slot": "early",
+      "title": "Small shopping check: Compare a realistic basket",
+      "script": "One small check can improve a shopping decision. Compare the products and quantities your household will actually use. A cheaper basket is only useful when it still meets your needs. Keep a short note of the options you compare. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Compare the products and quantities your household will actually use. A cheaper basket is only useful when it still meets your needs. Keep the comparison tied to your actual needs.",
+      "style": "Educational",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-24",
+      "slot": "am",
+      "title": "Your next price check: Plan the next few meals",
+      "script": "Give your next price check a clear starting point. Build a short meal plan around ingredients already at home. Then compare prices for the missing ingredients rather than starting with sale stickers. Keep a short note of the options you compare. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Build a short meal plan around ingredients already at home. Then compare prices for the missing ingredients rather than starting with sale stickers. Let the full comparison guide your choice.",
+      "style": "Storytelling",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-24",
+      "slot": "pm",
+      "title": "Before you buy: Check storage instructions",
+      "script": "Before your next purchase, try this check. Read storage instructions before choosing a bulk purchase. A product that needs conditions you cannot provide may become an expensive mistake. Keep the comparison tied to your actual needs. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Read storage instructions before choosing a bulk purchase. A product that needs conditions you cannot provide may become an expensive mistake. Keep a short note of the options you compare.",
+      "style": "Playful",
+      "theme": "waste"
+    },
+    {
+      "date": "2026-12-25",
+      "slot": "early",
+      "title": "A useful second look: Make one clear price check",
+      "script": "A useful second look starts with the details. Start with a specific product, size or model rather than a vague category. A clear description makes the comparison more useful. Check the details again when you are ready to buy. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Start with a specific product, size or model rather than a vague category. A clear description makes the comparison more useful. A clear comparison is more useful than a rushed one.",
+      "style": "Educational",
+      "theme": "shopping-check"
+    },
+    {
+      "date": "2026-12-25",
+      "slot": "am",
+      "title": "Pause at checkout: Recheck before payment",
+      "script": "Pause for a quick check before committing. Review quantities, delivery choices and the final amount before paying. A useful comparison should end with the price you actually agree to pay. Take a moment to check rather than guess. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Review quantities, delivery choices and the final amount before paying. A useful comparison should end with the price you actually agree to pay. Check the details again when you are ready to buy.",
+      "style": "Storytelling",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-25",
+      "slot": "pm",
+      "title": "Before you buy: Check who qualifies",
+      "script": "Before your next purchase, try this check. Read the conditions for a member or promotional price. Make sure you qualify before using that price in your comparison. Check the details again when you are ready to buy. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "Read the conditions for a member or promotional price. Make sure you qualify before using that price in your comparison. Keep the comparison tied to your actual needs.",
+      "style": "Playful",
+      "theme": "offers"
+    },
+    {
+      "date": "2026-12-26",
+      "slot": "early",
+      "title": "Before you buy: Check availability before travelling",
+      "script": "Before your next purchase, try this check. Check the retailer listing or contact the store before making a special trip. An advertised product may not be available at every branch. Keep a short note of the options you compare. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Check the retailer listing or contact the store before making a special trip. An advertised product may not be available at every branch. Keep a short note of the options you compare.",
+      "style": "Educational",
+      "theme": "shopping-check"
+    },
+    {
+      "date": "2026-12-26",
+      "slot": "am",
+      "title": "Plan then compare: Check included accessories",
+      "script": "Plan the purchase, then compare the options. Read what comes in the box before comparing bundles. One listing may include accessories that another sells separately. Take a moment to check rather than guess. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "Read what comes in the box before comparing bundles. One listing may include accessories that another sells separately. Take a moment to check rather than guess.",
+      "style": "Storytelling",
+      "theme": "equivalence"
+    },
+    {
+      "date": "2026-12-26",
+      "slot": "pm",
+      "title": "Read before choosing: Check the cupboard first",
+      "script": "Read the details before choosing between offers. Look through your cupboards before making a shopping list. Finding something you already own can remove an unnecessary purchase altogether. Take a moment to check rather than guess. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "Look through your cupboards before making a shopping list. Finding something you already own can remove an unnecessary purchase altogether. Take a moment to check rather than guess.",
+      "style": "Playful",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-27",
+      "slot": "early",
+      "title": "A practical buying habit: Check who qualifies",
+      "script": "Try this practical habit when comparing products. Read the conditions for a member or promotional price. Make sure you qualify before using that price in your comparison. Let the full comparison guide your choice. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Read the conditions for a member or promotional price. Make sure you qualify before using that price in your comparison. Check the details again when you are ready to buy.",
+      "style": "Educational",
+      "theme": "offers"
+    },
+    {
+      "date": "2026-12-27",
+      "slot": "am",
+      "title": "A clearer comparison: Compare the final total",
+      "script": "Make your next comparison easier to understand. Add delivery and any checkout charges before choosing a retailer. The lowest item price does not always produce the lowest final total. Check the details again when you are ready to buy. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Add delivery and any checkout charges before choosing a retailer. The lowest item price does not always produce the lowest final total. Keep the comparison tied to your actual needs.",
+      "style": "Storytelling",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-27",
+      "slot": "pm",
+      "title": "A practical buying habit: Match the model number",
+      "script": "Try this practical habit when comparing products. For electronics and appliances, compare the complete model number. Similar names or photographs do not prove that two listings contain the same product. Take a moment to check rather than guess. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "For electronics and appliances, compare the complete model number. Similar names or photographs do not prove that two listings contain the same product. Take a moment to check rather than guess.",
+      "style": "Playful",
+      "theme": "equivalence"
+    },
+    {
+      "date": "2026-12-28",
+      "slot": "early",
+      "title": "Pause at checkout: Read the minimum purchase",
+      "script": "Pause for a quick check before committing. Check whether an offer requires a minimum quantity or basket total. Compare the full amount you must spend, not just the advertised unit price. Let the full comparison guide your choice. Make Cwhereucheaper.co.za your next price-check starting point.",
+      "caption": "Check whether an offer requires a minimum quantity or basket total. Compare the full amount you must spend, not just the advertised unit price. Check the details again when you are ready to buy.",
+      "style": "Educational",
+      "theme": "offers"
+    },
+    {
+      "date": "2026-12-28",
+      "slot": "am",
+      "title": "A clearer comparison: Check storage instructions",
+      "script": "Make your next comparison easier to understand. Read storage instructions before choosing a bulk purchase. A product that needs conditions you cannot provide may become an expensive mistake. Keep the comparison tied to your actual needs. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Read storage instructions before choosing a bulk purchase. A product that needs conditions you cannot provide may become an expensive mistake. Let the full comparison guide your choice.",
+      "style": "Storytelling",
+      "theme": "waste"
+    },
+    {
+      "date": "2026-12-28",
+      "slot": "pm",
+      "title": "A clearer comparison: Compare useful capacity",
+      "script": "Make your next comparison easier to understand. Choose capacity that fits your normal use and available space. Paying for extra size is not automatically a saving. Check the details again when you are ready to buy. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Choose capacity that fits your normal use and available space. Paying for extra size is not automatically a saving. A clear comparison is more useful than a rushed one.",
+      "style": "Playful",
+      "theme": "ownership"
+    },
+    {
+      "date": "2026-12-29",
+      "slot": "early",
+      "title": "Look a little closer: Compare the same quantity",
+      "script": "Look a little closer before choosing a price. Put both products on the same unit before comparing. A price per kilogram cannot be compared directly with a price per hundred grams. Take a moment to check rather than guess. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Put both products on the same unit before comparing. A price per kilogram cannot be compared directly with a price per hundred grams. A clear comparison is more useful than a rushed one.",
+      "style": "Educational",
+      "theme": "unit-price"
+    },
+    {
+      "date": "2026-12-29",
+      "slot": "am",
+      "title": "Plan then compare: Separate needs and extras",
+      "script": "Plan the purchase, then compare the options. Mark the items you need before browsing offers. Keeping extras separate makes it easier to see what is changing your basket total. A clear comparison is more useful than a rushed one. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Mark the items you need before browsing offers. Keeping extras separate makes it easier to see what is changing your basket total. Take a moment to check rather than guess.",
+      "style": "Storytelling",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-29",
+      "slot": "pm",
+      "title": "A clearer comparison: Count what is inside",
+      "script": "Make your next comparison easier to understand. Check both the number of items and the size of each one. Similar looking multipacks can contain very different total quantities. A clear comparison is more useful than a rushed one. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Check both the number of items and the size of each one. Similar looking multipacks can contain very different total quantities. A clear comparison is more useful than a rushed one.",
+      "style": "Playful",
+      "theme": "unit-price"
+    },
+    {
+      "date": "2026-12-30",
+      "slot": "early",
+      "title": "Shopping list reminder: Check storage instructions",
+      "script": "Keep this reminder beside your shopping list. Read storage instructions before choosing a bulk purchase. A product that needs conditions you cannot provide may become an expensive mistake. Check the details again when you are ready to buy. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Read storage instructions before choosing a bulk purchase. A product that needs conditions you cannot provide may become an expensive mistake. A clear comparison is more useful than a rushed one.",
+      "style": "Educational",
+      "theme": "waste"
+    },
+    {
+      "date": "2026-12-30",
+      "slot": "am",
+      "title": "Before you buy: Recheck before payment",
+      "script": "Before your next purchase, try this check. Review quantities, delivery choices and the final amount before paying. A useful comparison should end with the price you actually agree to pay. Keep the comparison tied to your actual needs. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Review quantities, delivery choices and the final amount before paying. A useful comparison should end with the price you actually agree to pay. Let the full comparison guide your choice.",
+      "style": "Storytelling",
+      "theme": "checkout"
+    },
+    {
+      "date": "2026-12-30",
+      "slot": "pm",
+      "title": "Pause at checkout: Check the offer period",
+      "script": "Pause for a quick check before committing. Check the offer dates and any stock conditions before planning a purchase. Reconfirm the price when you are ready to buy. A clear comparison is more useful than a rushed one. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Check the offer dates and any stock conditions before planning a purchase. Reconfirm the price when you are ready to buy. Let the full comparison guide your choice.",
+      "style": "Playful",
+      "theme": "offers"
+    },
+    {
+      "date": "2026-12-31",
+      "slot": "early",
+      "title": "Pause at checkout: Separate needs and extras",
+      "script": "Pause for a quick check before committing. Mark the items you need before browsing offers. Keeping extras separate makes it easier to see what is changing your basket total. Check the details again when you are ready to buy. Start your next price check at Cwhereucheaper.co.za.",
+      "caption": "Mark the items you need before browsing offers. Keeping extras separate makes it easier to see what is changing your basket total. Check the details again when you are ready to buy.",
+      "style": "Educational",
+      "theme": "planning"
+    },
+    {
+      "date": "2026-12-31",
+      "slot": "am",
+      "title": "Your next price check: Look beyond the photograph",
+      "script": "Give your next price check a clear starting point. Use the written product description, model and quantity to check a match. A familiar photograph alone is not enough evidence. A clear comparison is more useful than a rushed one. Visit Cwhereucheaper.co.za before your next price check.",
+      "caption": "Use the written product description, model and quantity to check a match. A familiar photograph alone is not enough evidence. Let the full comparison guide your choice.",
+      "style": "Storytelling",
+      "theme": "equivalence"
+    },
+    {
+      "date": "2026-12-31",
+      "slot": "pm",
+      "title": "Pause at checkout: Check who qualifies",
+      "script": "Pause for a quick check before committing. Read the conditions for a member or promotional price. Make sure you qualify before using that price in your comparison. Check the details again when you are ready to buy. Begin your next shopping comparison at Cwhereucheaper.co.za.",
+      "caption": "Read the conditions for a member or promotional price. Make sure you qualify before using that price in your comparison. Take a moment to check rather than guess.",
+      "style": "Playful",
+      "theme": "offers"
+    }
+  ],
+  "sha256": "61a38a26f880d42dabbe1d93d24783212bb06ec866d2306c533470fa35e58aac"
+}

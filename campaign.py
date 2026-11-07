@@ -76,7 +76,7 @@ def generate(item, release, ledger):
         raise RuntimeError('Approved Emma voice unavailable; refusing to substitute silently.')
     payload = {'topic': item['title'] + '. Original South African shopping education. Use clear original motion graphics. '
         'Any arithmetic is illustrative, never a current retailer offer.', 'script': item['script'],
-        'duration': 25, 'style': 'Educational', 'voice': voice, 'assets': [],
+        'duration': 25, 'style': item.get('style', 'Educational'), 'voice': voice, 'assets': [],
         'stock': False, 'capture': False, 'music': False, 'music_track': '', 'rights_confirmed': True}
     job = json.loads(request(ORIGIN + '/reels/api/jobs', body=payload,
         headers={'Origin': ORIGIN, 'X-Reel-CSRF': session['csrf']}, opener=opener))

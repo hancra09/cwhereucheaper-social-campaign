@@ -12,6 +12,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from content_factory import build_month, theme_for, validate_plan
+from media_delivery import publish as publish_delivery
 
 SAST = dt.timezone(dt.timedelta(hours=2))
 START = dt.date(2026, 11, 8)
@@ -288,6 +289,9 @@ def run(day, slot, *, now, immediate=False, preflight=False):
         elif ledger.get('pending_service') == service:
             raise RuntimeError('Previous send has an uncertain result; refusing to retry without reconciliation.')
         else:
+            if not immediate:
+                video = ledger.get('delivery_video') or delivery_url(tag, ledger['video'], now)
+                ledger['delivery_video'] = video
             ledger['pending_service'] = service
             save(release, ledger)
             # Facebook requires its native Reel type and does not accept the
@@ -313,6 +317,39 @@ def run(day, slot, *, now, immediate=False, preflight=False):
     ledger['state'] = 'submitted' if immediate else 'scheduled'
     save(release, ledger)
     print(json.dumps({'slot': tag, 'posts': ledger['posts']}, indent=2))
+
+
+def delivery_url(tag, original, now):
+    return publish_delivery(tag, original, gh=gh, request=request, repo=REPO, now=now)
+
+
+def refresh_media(now):
+    """Edit only future scheduled campaign posts, keeping IDs/text/schedules intact."""
+    posts = campaign_posts(existing_posts(now=now))
+    for day, slot in future_slots(now):
+        tag = day.strftime('%Y%m%d') + '-' + slot
+        release = read_release(tag)
+        ledger = json.loads(release['body'] or '{}') if release else {}
+        if not ledger.get('video'):
+            continue
+        url = delivery_url(tag, ledger['video'], now)
+        for service, recorded in ledger.get('posts', {}).items():
+            matches = [p for p in posts if p['id'] == recorded['id']]
+            if len(matches) != 1 or matches[0]['status'] != 'scheduled':
+                raise RuntimeError('Media edit requires the exact live scheduled post: ' + tag + '/' + service)
+            before = matches[0]
+            result = buffer('mutation($input:EditPostInput!){editPost(input:$input){... on PostActionSuccess{post{' + POST_FIELDS + '}} ... on MutationError{message}}}',
+                {'input': {'id': before['id'], 'assets': [{'video': {'url': url}}]}})['editPost']
+            after = result.get('post')
+            if not after:
+                raise RuntimeError('Buffer media edit refused: ' + str(result.get('message')))
+            if any(after[k] != before[k] for k in ('id', 'channelId', 'text', 'dueAt', 'status')):
+                raise RuntimeError('Media edit changed scheduling/content unexpectedly: ' + tag)
+            ledger['posts'][service] = after
+            save(release, ledger)
+            print('Refreshed media only: ' + tag + '/' + service + '/' + after['id'])
+        ledger['delivery_video'] = url
+        save(release, ledger)
 
 
 def campaign_posts(posts):
@@ -443,11 +480,14 @@ def review():
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--mode', choices=['scheduled', 'preflight', 'bootstrap', 'smoke', 'audit', 'review', 'prepare', 'prime'], default='scheduled')
+    p.add_argument('--mode', choices=['scheduled', 'preflight', 'bootstrap', 'smoke', 'audit', 'review', 'prepare', 'prime', 'refresh-media'], default='scheduled')
     args = p.parse_args()
     now = dt.datetime.now(SAST)
     check_access_expiry(now)
     ensure_plans(now.date())
+    if args.mode == 'refresh-media':
+        refresh_media(now)
+        return
     if args.mode == 'prepare':
         print('Current and next monthly content plans are ready. No render or publish.')
         return

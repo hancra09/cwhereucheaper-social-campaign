@@ -241,3 +241,37 @@ class CampaignSafety(unittest.TestCase):
 
 if __name__=='__main__':
     unittest.main()
+
+
+class MediaDeliverySafety(unittest.TestCase):
+    def test_cache_never_accepts_document_or_arbitrary_path(self):
+        import media_delivery as m
+        from unittest.mock import Mock
+        gh = Mock()
+        with self.assertRaises(ValueError):
+            m.publish('COR14.3.pdf', 'private', gh=gh, request=Mock(), repo=c.REPO, now=dt.datetime.now(c.SAST))
+        gh.assert_not_called()
+
+    def test_cache_retention_excludes_private_paths_and_keeps_future_video(self):
+        import media_delivery as m
+        entries = [{'type':'blob','path':p} for p in ['20261109-am.mp4','20261001-pm.mp4','TaxNumber.pdf','main.py','20261108-../../secret.mp4']]
+        self.assertEqual([e['path'] for e in m.retained(entries, dt.datetime(2026,11,8))], ['20261109-am.mp4'])
+
+    def test_existing_cached_video_never_reuploads_or_rewrites_any_ref(self):
+        import media_delivery as m
+        from unittest.mock import Mock
+        gh = Mock(side_effect=[{'object':{'sha':'commit'}},{'tree':{'sha':'tree'}}, {'tree':[{'path':'20261109-am.mp4','mode':'100644','type':'blob','sha':'blob'}]}])
+        request=Mock(return_value=b'0000ftyprest')
+        url=m.publish('20261109-am','unused',gh=gh,request=request,repo=c.REPO,now=dt.datetime(2026,11,8))
+        self.assertTrue(url.endswith('/public-video-cache/20261109-am.mp4'))
+        self.assertTrue(all(len(call.args)==1 for call in gh.call_args_list))
+
+    def test_refresh_edits_media_on_same_scheduled_post_and_preserves_content(self):
+        now=dt.datetime(2026,11,8,12,40,tzinfo=c.SAST)
+        before={'id':'same','channelId':c.CHANNELS['tiktok'],'status':'scheduled','text':'utm_campaign=30_day_shopping_tips','dueAt':'2026-11-08T16:30:00Z'}
+        release={'body':json.dumps({'video':'release-url','posts':{'tiktok':before}})}
+        with patch.object(c,'existing_posts',return_value=[before]), patch.object(c,'future_slots',return_value=[(c.START,'pm')]), patch.object(c,'read_release',return_value=release), patch.object(c,'delivery_url',return_value='https://public/video.mp4'), patch.object(c,'buffer',return_value={'editPost':{'post':before}}) as api, patch.object(c,'save'):
+            c.refresh_media(now)
+        payload=api.call_args.args[1]['input']
+        self.assertEqual(payload,{'id':'same','assets':[{'video':{'url':'https://public/video.mp4'}}]})
+        self.assertNotIn('createPost',api.call_args.args[0])

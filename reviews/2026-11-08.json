@@ -1,0 +1,8 @@
+{
+  "week_ending": "2026-11-08",
+  "preferred_themes": [],
+  "examples": [],
+  "basis": "Within-channel post metrics, not measured website conversions",
+  "notes": "Early Buffer metrics can lag or be unavailable. Preserve variety; no raw metrics stored.",
+  "status": "insufficient_data"
+}

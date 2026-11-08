@@ -13,4 +13,10 @@ class TriggerSafety(unittest.TestCase):
             self.assertTrue(trigger.running([{'status':state}]))
         self.assertFalse(trigger.running([{'status':'completed'}]))
 
+    def test_audits_queue_even_when_preparation_is_running(self):
+        runs=[{'status':'in_progress'}]
+        self.assertTrue(trigger.defer(runs,'prime'))
+        self.assertFalse(trigger.defer(runs,'audit'))
+        self.assertFalse(trigger.defer(runs,'review'))
+
 if __name__=='__main__':unittest.main()

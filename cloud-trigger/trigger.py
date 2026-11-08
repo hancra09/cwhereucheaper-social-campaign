@@ -27,6 +27,11 @@ def running(runs):
     return any(r['status'] in ('queued', 'in_progress', 'waiting', 'pending', 'requested') for r in runs)
 
 
+def defer(runs, mode):
+    # Preparation can wait; delivery audits/reviews must queue behind active work.
+    return mode == 'prime' and running(runs)
+
+
 def api(path, token, payload=None):
     req = urllib.request.Request('https://api.github.com/repos/' + REPO + '/actions/' + path,
         data=json.dumps(payload).encode() if payload is not None else None,
@@ -51,7 +56,7 @@ def main():
         print('Already attempted this minute; no duplicate dispatch.')
         return
     runs = api('workflows/' + WORKFLOW + '/runs?per_page=20', token)['workflow_runs']
-    if running(runs):
+    if defer(runs, mode):
         print('Campaign already active; no overlapping dispatch.')
         return
     record = {'marker': marker, 'mode': mode, 'attempted_at_utc': now.isoformat(),

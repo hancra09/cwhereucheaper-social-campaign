@@ -334,12 +334,15 @@ def refresh_media(now):
             continue
         url = delivery_url(tag, ledger['video'], now)
         for service, recorded in ledger.get('posts', {}).items():
+            if service == 'youtube':
+                continue  # Its existing attachment published successfully; leave it intact.
             matches = [p for p in posts if p['id'] == recorded['id']]
             if len(matches) != 1 or matches[0]['status'] != 'scheduled':
                 raise RuntimeError('Media edit requires the exact live scheduled post: ' + tag + '/' + service)
             before = matches[0]
             result = buffer('mutation($input:EditPostInput!){editPost(input:$input){... on PostActionSuccess{post{' + POST_FIELDS + '}} ... on MutationError{message}}}',
-                {'input': {'id': before['id'], 'assets': [{'video': {'url': url}}]}})['editPost']
+                {'input': {'id': before['id'], 'assets': [{'video': {'url': url}}],
+                    'metadata': {'facebook': {'type': 'reel'}} if service == 'facebook' else {'tiktok': {'isAiGenerated': True}}}})['editPost']
             after = result.get('post')
             if not after:
                 raise RuntimeError('Buffer media edit refused: ' + str(result.get('message')))

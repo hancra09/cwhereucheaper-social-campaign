@@ -273,5 +273,5 @@ class MediaDeliverySafety(unittest.TestCase):
         with patch.object(c,'existing_posts',return_value=[before]), patch.object(c,'future_slots',return_value=[(c.START,'pm')]), patch.object(c,'read_release',return_value=release), patch.object(c,'delivery_url',return_value='https://public/video.mp4'), patch.object(c,'buffer',return_value={'editPost':{'post':before}}) as api, patch.object(c,'save'):
             c.refresh_media(now)
         payload=api.call_args.args[1]['input']
-        self.assertEqual(payload,{'id':'same','assets':[{'video':{'url':'https://public/video.mp4'}}]})
+        self.assertEqual(payload,{'id':'same','assets':[{'video':{'url':'https://public/video.mp4'}}], 'metadata': {'tiktok': {'isAiGenerated': True}}})
         self.assertNotIn('createPost',api.call_args.args[0])

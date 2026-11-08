@@ -26,6 +26,9 @@ POST_FIELDS = 'id channelId status text dueAt externalLink error { message }'
 SLOTS = {'early': dt.time(8), 'am': dt.time(12, 30), 'pm': dt.time(18, 30)}
 ROOT = Path(__file__).parent
 AUDIT_DAYS = 7
+DAILY_RENDER_LIMIT = 3
+PREPARE_HOURS = 48
+MIN_LEAD_HOURS = 2
 
 
 def campaign_item(day, slot):
@@ -136,6 +139,31 @@ def load_release(tag):
         return gh('releases', {'tag_name': tag, 'name': tag, 'body': '{}', 'draft': False, 'prerelease': True})
 
 
+def read_release(tag):
+    try:
+        return gh('releases/tags/' + tag)
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            return None
+        raise
+
+
+def render_budget(now):
+    release = read_release('render-budget-' + now.strftime('%Y%m%d'))
+    return (json.loads(release['body'] or '{}').get('slots', []) if release else [])
+
+
+def reserve_render(tag, now):
+    release = load_release('render-budget-' + now.strftime('%Y%m%d'))
+    ledger = json.loads(release['body'] or '{}')
+    slots = ledger.setdefault('slots', [])
+    if tag not in slots:
+        if len(slots) >= DAILY_RENDER_LIMIT:
+            raise RuntimeError('Daily three-render budget already reserved; no extra render.')
+        slots.append(tag)
+        save(release, ledger)
+
+
 def save(release, ledger):
     # Durable before/after each publishing mutation; failed ambiguous sends reconcile first.
     gh('releases/' + str(release['id']), {'body': json.dumps(ledger, indent=2)}, 'PATCH')
@@ -148,6 +176,7 @@ def generate(item, release, ledger):
         return existing['browser_download_url']
     if ledger.get('render_attempted'):
         raise RuntimeError('Previous render attempt has no stored media. Review before retrying; no duplicate quota use.')
+    reserve_render(ledger['slot'], dt.datetime.now(SAST))
     ledger['render_attempted'] = True
     save(release, ledger)
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
@@ -291,6 +320,57 @@ def campaign_posts(posts):
         for name in ('30_day_shopping_tips', 'evergreen_shopping_tips'))]
 
 
+def future_slots(now):
+    earliest = now + dt.timedelta(hours=MIN_LEAD_HOURS)
+    latest = now + dt.timedelta(hours=PREPARE_HOURS)
+    day = max(START, now.date())
+    while day <= latest.date():
+        for slot, when in SLOTS.items():
+            due = dt.datetime.combine(day, when, SAST)
+            if earliest <= due <= latest:
+                yield day, slot
+        day += dt.timedelta(days=1)
+
+
+def prepare_ahead(now):
+    """Fill one future slot. Never catch up a missed slot or exceed daily generation."""
+    posts = existing_posts(now=now)
+    # Leave room for an Owner-added post within Buffer Free's 10-per-channel queue.
+    if any(sum(p['channelId'] == channel and p['status'] in ('scheduled', 'sending')
+               for p in posts) >= 9 for channel in CHANNELS.values()):
+        print('Ahead preparation paused: a channel queue has nine pending posts.')
+        return False
+    budget = render_budget(now)
+    for day, slot in future_slots(now):
+        tag = day.strftime('%Y%m%d') + '-' + slot
+        release = read_release(tag)
+        ledger = json.loads(release['body'] or '{}') if release else {}
+        item = ledger.get('content') or campaign_item(day, slot)
+        matches = {service: [p for p in posts if p['channelId'] == channel
+                   and p['text'] == caption(item, service, tag)]
+                   for service, channel in CHANNELS.items()}
+        if any(len(values) > 1 for values in matches.values()):
+            raise RuntimeError('Duplicate live slot posts need review: ' + tag)
+        if all(values and values[0]['status'] in ('scheduled', 'sending', 'sent')
+               for values in matches.values()):
+            continue
+        video_ready = bool(ledger.get('video') or (release and
+            any(a['name'] == 'video.mp4' for a in release.get('assets', []))))
+        pending = ledger.get('pending_service')
+        if pending and not matches.get(pending):
+            print('::warning::Uncertain send retained for review; no resend: ' + tag)
+            continue
+        if ledger.get('render_attempted') and not video_ready:
+            print('::warning::Unresolved render retained for review; no repeat: ' + tag)
+            continue
+        if not video_ready and tag not in budget and len(budget) >= DAILY_RENDER_LIMIT:
+            continue
+        run(day, slot, now=now)
+        return True
+    print('No safe future slot needs preparation within the current budget/horizon.')
+    return False
+
+
 def audit():
     now = dt.datetime.now(SAST)
     posts = existing_posts(now=now)
@@ -363,7 +443,7 @@ def review():
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--mode', choices=['scheduled', 'preflight', 'bootstrap', 'smoke', 'audit', 'review', 'prepare'], default='scheduled')
+    p.add_argument('--mode', choices=['scheduled', 'preflight', 'bootstrap', 'smoke', 'audit', 'review', 'prepare', 'prime'], default='scheduled')
     args = p.parse_args()
     now = dt.datetime.now(SAST)
     check_access_expiry(now)
@@ -387,15 +467,14 @@ def main():
     if now.date() < START:
         print('Campaign inactive before 8 Nov 2026 SAST. No render or publish.')
         return
-    prior_failure = None
-    try:
-        audit()
-    except RuntimeError as error:
-        # A missed/failed earlier slot must not prevent the next distinct video.
-        prior_failure = str(error)
-    run(now.date(), scheduled_slot(now), now=now)
-    if prior_failure:
-        raise RuntimeError(prior_failure)
+    # Preparation is independent of publication-time audit. A missed historical
+    # slot still fails the separate audits but does not block future preparation.
+    deadline = time.monotonic() + 24 * 60
+    for _ in range(3 if args.mode == 'prime' else 1):
+        if deadline - time.monotonic() < 20 * 60:
+            break  # Reserve room for one existing bounded renderer.
+        if not prepare_ahead(dt.datetime.now(SAST)):
+            break
 
 
 if __name__ == '__main__':

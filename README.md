@@ -14,7 +14,7 @@ Saved monthly plans have three complete slots per calendar day, unique narration
 
 The existing Reels creator produces 25-second 1080×1920 videos with Emma narration and original motion graphics. No music, stock media or browser capture is requested. The workflow respects the guest three-per-day allowance, validates video and narration, then supplies intended-public MP4 files to Buffer. Supported AI flags are set for TikTok/YouTube; Facebook uses its native Reel type. Captions retain the disclosure.
 
-Preparation runs at **06:53, 11:23 and 17:23 SAST**; publication checks at **08:20, 12:50 and 18:50 SAST**. Rendering is bounded to 20 minutes and each workflow to 28 minutes. No campaign end-date or automatic end-date disable remains. Service quotas, valid access and provider availability still apply. No laptop or new recurring subscription is required.
+Preparation checks run at **06:53, 11:23 and 17:23 SAST**, plus every two hours at minute 13. They fill future slots 2–48 hours ahead rather than relying on a same-day trigger. Publication checks remain **08:20, 12:50 and 18:50 SAST**. Rendering is bounded to 20 minutes and each workflow to 28 minutes. No campaign end-date or automatic end-date disable remains. Service quotas, valid access and provider availability still apply. No laptop or new recurring subscription is required.
 
 ## Reconciliation and weekly review
 
@@ -31,3 +31,9 @@ BUFFER_API_KEY remains an encrypted GitHub Actions secret with only account:read
 Disable the Cloud video campaign workflow to pause creation. Review Buffer separately for posts already queued. Revoking the key ends the integration's access. Manual preflight validates content, channel identity and reconciliation without rendering or creating social posts. prepare prepares plans only; review performs the optional weekly content check. Smoke mode remains restricted to the already-authorized 7 November 2026 proof and should not be rerun.
 
 Native failed-workflow notifications provide failure notices according to the account's settings. Disconnected channels, provider restrictions and credential renewal may require attention. No new paid service is authorized.
+
+## Scheduler-delay recovery
+
+The 08:00 SAST slot on 8 November 2026 was missed: GitHub had not delivered its preparation trigger. Earlier scheduled runs also arrived hours late. GitHub cron is best effort, so publication time must be held in Buffer ahead of time. The ahead preparer fills one future slot per trigger, always at least two hours before publication, with a 48-hour horizon and at most nine pending posts per channel. A durable daily ledger limits the campaign to three new render attempts per SAST day, including failed/uncertain attempts. Existing video reuse does not consume another render. No missed slot is backdated or flooded into the current queue.
+
+Manual prime can prepare up to three future slots within the same daily budget and workflow deadline. Uncertain sends and unresolved renders stay recorded and are not retried blindly; another distinct safe slot can be prepared. Separate publication audits continue to report the missed 08:00 slot until it leaves their seven-day window. Ahead preparation does not turn that historical failure into a pass. Provider scheduling is still best effort, but prepared Buffer posts no longer depend on a trigger arriving just before publication.

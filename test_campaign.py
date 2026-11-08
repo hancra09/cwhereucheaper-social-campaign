@@ -184,6 +184,60 @@ class CampaignSafety(unittest.TestCase):
             c.run(c.START,'am',now=self.now)
             self.assertEqual(api.call_count,1)
 
+    def test_delayed_trigger_prepares_future_slots_without_catchup(self):
+        now=dt.datetime(2026,11,8,10,30,tzinfo=c.SAST)
+        future=list(c.future_slots(now))
+        self.assertEqual(future[0],(dt.date(2026,11,8),'am'))
+        self.assertNotIn((dt.date(2026,11,8),'early'),future)
+        for day,slot in future:
+            due=dt.datetime.combine(day,c.SLOTS[slot],c.SAST)
+            self.assertGreaterEqual(due,now+dt.timedelta(hours=2))
+            self.assertLessEqual(due,now+dt.timedelta(hours=48))
+
+    def test_ahead_preparation_skips_already_queued_slot(self):
+        now=dt.datetime(2026,11,8,10,tzinfo=c.SAST)
+        item=c.campaign_item(c.START,'am')
+        posts=[{'id':s,'channelId':i,'status':'scheduled',
+                'text':c.caption(item,s,'20261108-am')} for s,i in c.CHANNELS.items()]
+        with patch.object(c,'existing_posts',return_value=posts), \
+                patch.object(c,'render_budget',return_value=[]), \
+                patch.object(c,'read_release',return_value=None),patch.object(c,'run') as run:
+            self.assertTrue(c.prepare_ahead(now))
+            self.assertEqual(run.call_args[0],(c.START,'pm'))
+
+    def test_daily_budget_blocks_extra_render_but_allows_existing_video_to_schedule(self):
+        now=dt.datetime(2026,11,8,10,tzinfo=c.SAST)
+        with patch.object(c,'existing_posts',return_value=[]), \
+                patch.object(c,'render_budget',return_value=['a','b','c']), \
+                patch.object(c,'read_release',return_value=None),patch.object(c,'run') as run:
+            self.assertFalse(c.prepare_ahead(now))
+            run.assert_not_called()
+        with patch.object(c,'existing_posts',return_value=[]), \
+                patch.object(c,'render_budget',return_value=['a','b','c']), \
+                patch.object(c,'read_release',return_value={'body':json.dumps({'video':'public.mp4'}),'assets':[]}), \
+                patch.object(c,'run') as run:
+            self.assertTrue(c.prepare_ahead(now))
+            run.assert_called_once()
+
+    def test_reservation_is_persistent_and_never_exceeds_three(self):
+        now=dt.datetime(2026,11,8,10,tzinfo=c.SAST)
+        release={'body':json.dumps({'slots':['one','two','three']})}
+        with patch.object(c,'load_release',return_value=release),patch.object(c,'save') as save:
+            with self.assertRaisesRegex(RuntimeError,'three-render budget'):
+                c.reserve_render('four',now)
+            c.reserve_render('two',now)
+            save.assert_not_called()
+
+    def test_blocked_or_unknown_send_is_not_retried_by_ahead_preparer(self):
+        now=dt.datetime(2026,11,8,10,tzinfo=c.SAST)
+        for ledger in ({'pending_service':'youtube'}, {'render_attempted':True}):
+            with patch.object(c,'existing_posts',return_value=[]), \
+                    patch.object(c,'render_budget',return_value=[]), \
+                    patch.object(c,'read_release',return_value={'body':json.dumps(ledger),'assets':[]}), \
+                    patch.object(c,'run') as run:
+                self.assertFalse(c.prepare_ahead(now))
+                run.assert_not_called()
+
 
 if __name__=='__main__':
     unittest.main()

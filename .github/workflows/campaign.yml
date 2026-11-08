@@ -7,13 +7,14 @@ on:
     - cron: '20 6 * * *'
     - cron: '50 10,16 * * *'
     - cron: '10 17 * * 0'
+    - cron: '13 */2 * * *'
   workflow_dispatch:
     inputs:
       mode:
         description: Campaign action
         type: choice
         default: preflight
-        options: [preflight, bootstrap, smoke, audit, scheduled, prepare, review]
+        options: [preflight, bootstrap, smoke, audit, scheduled, prepare, review, prime]
 
 permissions:
   contents: write

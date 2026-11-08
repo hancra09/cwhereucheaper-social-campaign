@@ -1,0 +1,16 @@
+[Unit]
+Description=Hourly preparation and scheduled delivery audits for social campaign
+
+[Timer]
+OnActiveSec=45s
+OnCalendar=*-*-* *:07:00 UTC
+OnCalendar=*-*-* 06:20:00 UTC
+OnCalendar=*-*-* 10:50:00 UTC
+OnCalendar=*-*-* 16:50:00 UTC
+OnCalendar=Sun *-*-* 17:10:00 UTC
+Persistent=yes
+AccuracySec=5s
+Unit=cwhereu-social-trigger.service
+
+[Install]
+WantedBy=timers.target

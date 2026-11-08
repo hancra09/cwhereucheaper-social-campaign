@@ -1,0 +1,23 @@
+[Unit]
+Description=Independent CWhereUCheaper campaign cloud trigger
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+DynamicUser=yes
+StateDirectory=cwhereu-social-trigger
+LoadCredentialEncrypted=github-token:/etc/cwhereu-social-trigger/github-token.cred
+ExecStart=/usr/bin/python3 /usr/local/lib/cwhereu-social-trigger/trigger.py
+TimeoutStartSec=180
+MemoryMax=128M
+CPUQuota=5%
+Nice=19
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX

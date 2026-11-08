@@ -1,0 +1,32 @@
+{
+  "status": "PASS",
+  "verified_sast": "2026-11-08T13:05:00+02:00",
+  "functional_sha": "d15379b01b81acf9c6e9c66f62008cf25f992995",
+  "timer": "cwhereu-social-trigger.timer",
+  "enabled": true,
+  "active": true,
+  "scheduled_sast": {
+    "prepare": "hourly at :07",
+    "audit": [
+      "08:20",
+      "12:50",
+      "18:50"
+    ],
+    "review": "Sunday 19:10"
+  },
+  "automatic_successful_runs": [
+    42473930803,
+    42474109541
+  ],
+  "trigger_credential": {
+    "repository": "hancra09/cwhereucheaper-social-campaign",
+    "permissions": {
+      "actions": "write",
+      "metadata": "read"
+    },
+    "expiry": "2027-11-07",
+    "storage": "systemd encrypted credential on existing hosting server"
+  },
+  "additional_recurring_service_cost": "R0/month",
+  "next_scheduled_publication": "NOT_PROVEN until due"
+}

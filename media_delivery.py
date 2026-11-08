@@ -2,6 +2,7 @@
 import base64
 import datetime as dt
 import re
+import subprocess
 import time
 import urllib.error
 
@@ -34,7 +35,10 @@ def publish(tag, source, *, gh, request, repo, now):
     path = tag + '.mp4'
     if not any(e['path'] == path for e in entries):
         assert source == f'https://github.com/{repo}/releases/download/{tag}/video.mp4'
-        video = request(source)
+        # The public release redirect itself has timed out remotely. Use the
+        # authenticated official CLI to retrieve the durable archived original.
+        video = subprocess.check_output(['gh', 'release', 'download', tag, '--repo', repo,
+            '--pattern', 'video.mp4', '--output', '-'], stderr=subprocess.PIPE, timeout=90)
         if video[4:8] != b'ftyp' or len(video) > 50_000_000:
             raise ValueError('Cache requires a validated campaign MP4 below 50MB')
         blob = gh('git/blobs', {'content': base64.b64encode(video).decode(), 'encoding': 'base64'}, 'POST')

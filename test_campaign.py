@@ -262,7 +262,7 @@ class MediaDeliverySafety(unittest.TestCase):
         from unittest.mock import Mock
         gh = Mock(side_effect=[{'object':{'sha':'commit'}},{'tree':{'sha':'tree'}}, {'tree':[{'path':'20261109-am.mp4','mode':'100644','type':'blob','sha':'blob'}]}])
         request=Mock(return_value=b'0000ftyprest')
-        url=m.publish('20261109-am','unused',gh=gh,request=request,repo=c.REPO,now=dt.datetime(2026,11,8))
+        url=m.publish('20261109-am','https://github.com/'+c.REPO+'/releases/download/20261109-am/video.mp4',gh=gh,request=request,repo=c.REPO,now=dt.datetime(2026,11,8))
         self.assertTrue(url.endswith('/public-video-cache/20261109-am.mp4'))
         self.assertTrue(all(len(call.args)==1 for call in gh.call_args_list))
 

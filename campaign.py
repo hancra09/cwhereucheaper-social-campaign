@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import subprocess
 import time
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -23,7 +24,7 @@ ORG = '6aeef1646c3957c58fdd3b19'
 CHANNELS = {'youtube': '6aeef238e29c69a171916d83', 'tiktok': '6aeef202e29c69a171916c16',
     'facebook': '6aeef981e29c69a17191b79b'}
 FACEBOOK_PAGE_ID = '1265683793295341'  # Public URL redirects to profile 61592840593333.
-POST_FIELDS = 'id channelId status text dueAt externalLink error { message }'
+POST_FIELDS = 'id channelId status text dueAt externalLink error { message } assets { source }'
 SLOTS = {'early': dt.time(8), 'am': dt.time(12, 30), 'pm': dt.time(18, 30)}
 ROOT = Path(__file__).parent
 AUDIT_DAYS = 7
@@ -175,6 +176,8 @@ def generate(item, release, ledger):
     existing = next((a for a in release['assets'] if a['name'] == 'video.mp4'), None)
     if existing:
         return existing['browser_download_url']
+    if item.get('creative_version') == 'creative-v2':
+        return creative_asset(item, release, ledger, new_slot=True)[0]
     if ledger.get('render_attempted'):
         raise RuntimeError('Previous render attempt has no stored media. Review before retrying; no duplicate quota use.')
     reserve_render(ledger['slot'], dt.datetime.now(SAST))
@@ -228,6 +231,113 @@ def generate(item, release, ledger):
     return asset['browser_download_url']
 
 
+
+def upload_creative_file(release, name, data, mime):
+    url = release['upload_url'].split('{')[0] + '?name=' + name
+    return json.loads(request(url, body=data, headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+        'Content-Type': mime, 'Accept': 'application/vnd.github+json'}))
+
+
+def creative_asset(item, release, ledger, *, new_slot=False):
+    filename = 'video-creative-v2.mp4'
+    existing = next((a for a in release.get('assets', []) if a['name'] == filename), None)
+    if existing:
+        metadata_asset = next((a for a in release['assets'] if a['name'] == 'creative-v2.json'), None)
+        if not metadata_asset:
+            raise RuntimeError('Creative video lacks reviewed provenance; refusing to publish.')
+        metadata = json.loads(subprocess.check_output(['gh','release','download',ledger['slot'],'--repo',REPO,
+            '--pattern','creative-v2.json','--output','-'], stderr=subprocess.PIPE, timeout=60))
+        if existing.get('digest') and existing['digest'] != 'sha256:'+metadata.get('sha256',''):
+            raise RuntimeError('Creative video checksum differs from reviewed provenance')
+        if metadata.get('voice') != 'af_heart' or metadata.get('creative_version') != 'creative-v2':
+            raise RuntimeError('Creative provenance does not match approved voice/style')
+        return existing['browser_download_url'], metadata
+    if ledger.get('creative_attempted'):
+        raise RuntimeError('Previous creative edit has no stored result; review rather than looping renders.')
+    if new_slot:
+        reserve_render(ledger['slot'], dt.datetime.now(SAST))
+        ledger['render_attempted'] = True
+    # Editing an existing scheduled slot adds no new slot or Reels-service job.
+    ledger['creative_attempted'] = True
+    save(release, ledger)
+    from creative_engine import render_video
+    with tempfile.TemporaryDirectory(prefix='cwuc-creative-') as directory:
+        work = Path(directory); video = work / filename
+        metadata = render_video(item, ledger['slot'], video, work)
+        asset = upload_creative_file(release, filename, video.read_bytes(), 'video/mp4')
+        upload_creative_file(release, 'creative-v2.json', json.dumps(metadata, indent=2).encode(), 'application/json')
+        upload_creative_file(release, 'creative-v2-contact-sheet.jpg', (work/'contact-sheet.jpg').read_bytes(), 'image/jpeg')
+    ledger['creative_video'] = asset['browser_download_url']
+    ledger['creative_result'] = metadata
+    if new_slot:
+        ledger['video'] = asset['browser_download_url']; ledger['render_result'] = metadata
+    save(release, ledger)
+    return asset['browser_download_url'], metadata
+
+
+def native_metadata(service, item):
+    if service == 'facebook':
+        return {'facebook': {'type': 'reel'}}
+    if service == 'tiktok':
+        return {'tiktok': {'isAiGenerated': True}}
+    return {'youtube': {'isAiGenerated': True, 'title': item['title'] + ' #Shorts',
+        'categoryId': '27', 'privacy': 'public', 'madeForKids': False, 'notifySubscribers': True}}
+
+
+def upgrade_creative(now):
+    channels = buffer('query($id:OrganizationId!){channels(input:{organizationId:$id}){id name service serviceId}}', {'id': ORG})['channels']
+    assert {c['service']:c['id'] for c in channels} == CHANNELS, 'Connected channel identity changed'
+    assert next(c['serviceId'] for c in channels if c['service']=='facebook') == FACEBOOK_PAGE_ID, 'Facebook Page identity changed'
+    posts = existing_posts(now=now)
+    latest = now + dt.timedelta(hours=48)
+    day = now.date()
+    changed = []
+    while day <= latest.date():
+        for slot, when in SLOTS.items():
+            due = dt.datetime.combine(day, when, SAST)
+            if not now+dt.timedelta(minutes=20) <= due <= latest:
+                continue
+            tag = day.strftime('%Y%m%d')+'-'+slot
+            release = read_release(tag)
+            ledger = json.loads(release['body'] or '{}') if release else {}
+            if not ledger.get('posts'):
+                continue
+            current = {}
+            for service, channel in CHANNELS.items():
+                recorded = ledger['posts'].get(service)
+                matches = [p for p in posts if recorded and p['id']==recorded['id'] and p['channelId']==channel]
+                if len(matches)!=1 or matches[0]['status']!='scheduled':
+                    raise RuntimeError('Upgrade requires exact live scheduled post: '+tag+'/'+service)
+                current[service]=matches[0]
+            item = {**ledger['content'], 'creative_version':'creative-v2'}
+            source, metadata = creative_asset(item, release, ledger)
+            url = delivery_url(tag, source, now)
+            ledger.setdefault('creative_previous', {'content': ledger['content'], 'video':ledger.get('video'), 'delivery_video':ledger.get('delivery_video')})
+            ledger['content']=item
+            ledger['creative_video']=source; ledger['creative_result']=metadata
+            ledger['creative_version']='creative-v2'
+            save(release, ledger)
+            for service, before in current.items():
+                expected_text=caption(item, service, tag)
+                if before['text']==expected_text and any(a.get('source')==url for a in before.get('assets', [])):
+                    continue
+                result=buffer('mutation($input:EditPostInput!){editPost(input:$input){... on PostActionSuccess{post{'+POST_FIELDS+'}} ... on MutationError{message}}}',
+                    {'input':{'id':before['id'],'text':expected_text,'assets':[{'video':{'url':url}}], 'metadata':native_metadata(service,item)}})['editPost']
+                after=result.get('post')
+                if not after:raise RuntimeError('Creative edit refused: '+str(result.get('message')))
+                if any(after[k]!=before[k] for k in ('id','channelId','dueAt','status')):
+                    raise RuntimeError('Creative edit changed publishing identity/schedule: '+tag+'/'+service)
+                if after['text']!=expected_text or not any(a.get('source')==url for a in after.get('assets', [])):
+                    raise RuntimeError('Creative attachment/text not retained: '+tag+'/'+service)
+                ledger['posts'][service]=after;save(release,ledger)
+                print('CREATIVE UPGRADE scheduled: '+tag+'/'+service+'/'+after['id'], flush=True)
+                changed.append({'slot':tag,'service':service,'id':after['id'],'dueAt':after['dueAt']})
+            ledger['delivery_video']=url
+            save(release,ledger)
+        day+=dt.timedelta(days=1)
+    print(json.dumps({'creative_version':'creative-v2','updated_posts':changed},indent=2))
+
+
 def existing_posts(*, now=None, metrics=False):
     now = now or dt.datetime.now(SAST)
     start = dt.datetime.combine(now.date() - dt.timedelta(days=AUDIT_DAYS), dt.time(), SAST)
@@ -248,7 +358,8 @@ def existing_posts(*, now=None, metrics=False):
 def caption(item, service, tag):
     campaign = 'evergreen_shopping_tips' if item.get('date', '') > LEGACY_END.isoformat() else '30_day_shopping_tips'
     link = ORIGIN + '/?utm_source=' + service + '&utm_medium=organic_social&utm_campaign=' + campaign + '&utm_content=' + tag
-    return item['title'] + '\n\n' + item['caption'] + '\nStart your next price check: ' + link + '\nAI narration and original motion graphics. #SouthAfrica #ShoppingTips #CwhereUcheaper' + (' #Shorts' if service == 'youtube' else '')
+    disclosure = 'AI narration and illustrative AI product visuals.' if item.get('creative_version') == 'creative-v2' else 'AI narration and original motion graphics.'
+    return item['title'] + '\n\n' + item['caption'] + '\nStart your next price check: ' + link + '\n' + disclosure + ' #SouthAfrica #ShoppingTips #CwhereUcheaper' + (' #Shorts' if service == 'youtube' else '')
 
 
 def run(day, slot, *, now, immediate=False, preflight=False):
@@ -274,6 +385,8 @@ def run(day, slot, *, now, immediate=False, preflight=False):
     ledger = json.loads(release['body'] or '{}')
     # Bind later retries to the content first selected for this slot.
     item = ledger.get('content', item)
+    if not ledger.get('video') and not ledger.get('render_attempted') and not ledger.get('posts'):
+        item = {**item, 'creative_version': 'creative-v2'}
     ledger['content'] = item
     ledger.update({'slot': tag, 'title': item['title'], 'due_sast': due.isoformat() if not immediate else now.isoformat(), 'posts': ledger.get('posts', {})})
     video = ledger.get('video') or generate(item, release, ledger)
@@ -483,11 +596,14 @@ def review():
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--mode', choices=['scheduled', 'preflight', 'bootstrap', 'smoke', 'audit', 'review', 'prepare', 'prime', 'refresh-media'], default='scheduled')
+    p.add_argument('--mode', choices=['scheduled', 'preflight', 'bootstrap', 'smoke', 'audit', 'review', 'prepare', 'prime', 'refresh-media', 'upgrade-creative'], default='scheduled')
     args = p.parse_args()
     now = dt.datetime.now(SAST)
     check_access_expiry(now)
     ensure_plans(now.date())
+    if args.mode == 'upgrade-creative':
+        upgrade_creative(now)
+        return
     if args.mode == 'refresh-media':
         refresh_media(now)
         return

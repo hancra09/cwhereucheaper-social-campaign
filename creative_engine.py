@@ -243,6 +243,7 @@ def render_video(item,tag,destination,work):
   ff=imageio_ffmpeg.get_ffmpeg_exe()
  cmd=[ff,'-y','-v','error','-f','rawvideo','-pix_fmt','rgb24','-s','1080x1920','-r','30','-i','-','-i',str(work/'narration.wav'),'-map','0:v','-map','1:a:0','-c:v','libx264','-preset','fast','-crf','19','-pix_fmt','yuv420p','-threads','2','-c:a','aac','-b:a','160k','-t',str(TOTAL),'-movflags','+faststart',str(destination)]
  proc=subprocess.Popen(cmd,stdin=subprocess.PIPE)
+ for old in work.glob('preview-*.jpg'):old.unlink()
  preview_frames={round((NARRATION['cuts'][i]+NARRATION['cuts'][i+1])/2*30) for i in range(6)}
  try:
   for i in range(round(TOTAL*30)):

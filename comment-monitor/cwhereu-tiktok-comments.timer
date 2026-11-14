@@ -1,0 +1,11 @@
+[Unit]
+Description=Check public TikTok comments twice hourly
+
+[Timer]
+OnActiveSec=30s
+OnCalendar=*-*-* *:10,40:00
+Persistent=true
+Unit=cwhereu-tiktok-comments.service
+
+[Install]
+WantedBy=timers.target

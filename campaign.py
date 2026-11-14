@@ -581,15 +581,17 @@ def prepare_ahead(now):
 
 
 
-def prepare_request(now, topic, request_id):
+def prepare_request(now, topic, request_id, subject=""):
     """Reserve only a vacant normal slot; keep existing queues untouched."""
     import re
     from response import research, build
-    if not re.fullmatch(r'[a-f0-9]{32}', request_id or '') or topic != 'delivery_total_v1':
-        raise ValueError('Unsupported request or invalid identifier')
+    if not re.fullmatch(r'[a-f0-9]{32}',request_id or ''):
+        raise ValueError('Invalid request identifier')
+    if not ((topic=='delivery_total_v1' and not subject) or (topic=='product_price_v1' and re.fullmatch(r'[1-9][0-9]{0,9}',subject or ''))):
+        raise ValueError('Unsupported request or subject')
     request_release = load_release('viewer-request-' + request_id)
     request_ledger = json.loads(request_release['body'] or '{}')
-    if request_ledger.get('topic') not in (None,topic):
+    if request_ledger.get('topic') not in (None,topic) or request_ledger.get('subject') not in (None,subject):
         raise ValueError('Request identifier reused')
     if request_ledger.get('state') == 'scheduled':
         return True
@@ -602,13 +604,17 @@ def prepare_request(now, topic, request_id):
         if len(render_budget(now)) >= DAILY_RENDER_LIMIT:
             print('Request deferred: daily render budget exhausted.')
             return False
-        item = build(topic,research())
+        if topic=='delivery_total_v1':
+            item=build(topic,research())
+        else:
+            from product_response import research as product_research, build as product_build
+            item=product_build(product_research(subject))
         item['response_request_id'] = request_id
         for day, slot in future_slots(now):
             tag = day.strftime('%Y%m%d')+'-'+slot
             if any('utm_content='+tag+'\n' in p.get('text','') for p in posts) or read_release(tag):
                 continue
-            request_ledger.update({'topic':topic,'slot':tag,'state':'reserving'})
+            request_ledger.update({'topic':topic,'subject':subject,'slot':tag,'state':'reserving'})
             save(request_release,request_ledger)
             slot_release = load_release(tag)
             slot_ledger = json.loads(slot_release['body'] or '{}')
@@ -625,18 +631,26 @@ def prepare_request(now, topic, request_id):
     day = dt.datetime.strptime(day_text,'%Y%m%d').date()
     if now > dt.datetime.combine(day,SLOTS[slot],SAST) - dt.timedelta(hours=MIN_LEAD_HOURS):
         raise RuntimeError('Reserved response slot too close; no post created.')
-    research()  # Reconfirm current source before a resumed scheduling attempt.
+    if topic=='delivery_total_v1':
+        research()  # Reconfirm source before scheduling.
     slot_release = read_release(selected)
     if not slot_release:
         raise RuntimeError('Reserved response slot missing; review required.')
     ledger = json.loads(slot_release['body'] or '{}')
     if ledger.get('response_request_id') != request_id:
         raise RuntimeError('Response slot belongs to another request.')
+    if topic=='product_price_v1':
+        from product_response import research as product_research
+        fresh=product_research(subject)
+        checked=dt.datetime.fromisoformat(ledger['content']['evidence_checked_sast'])
+        age=dt.datetime.now(dt.timezone.utc)-checked.astimezone(dt.timezone.utc)
+        if age>dt.timedelta(minutes=30) or age<dt.timedelta(minutes=-5) or 'R'+fresh['price'] not in ledger['content']['script']:
+            raise RuntimeError('Product evidence expired or changed; no post created.')
     run(day,slot,now=now,request_item=ledger['content'])
     confirmed = json.loads(read_release(selected)['body'] or '{}')
     if confirmed.get('state') != 'scheduled' or set(confirmed.get('posts',{})) != set(CHANNELS):
         raise RuntimeError('Response delivery not fully confirmed.')
-    request_ledger.update({'topic':topic,'slot':selected,'state':'scheduled'})
+    request_ledger.update({'topic':topic,'subject':subject,'slot':selected,'state':'scheduled'})
     save(request_release,request_ledger)
     print('Viewer response scheduled in campaign slot:',selected)
     return True
@@ -717,12 +731,13 @@ def main():
     p.add_argument('--mode', choices=['scheduled', 'preflight', 'bootstrap', 'smoke', 'audit', 'review', 'prepare', 'prime', 'refresh-media', 'upgrade-creative', 'growth-test', 'viewer-response'], default='scheduled')
     p.add_argument('--request-topic', default='')
     p.add_argument('--request-id', default='')
+    p.add_argument('--request-subject', default='')
     args = p.parse_args()
     now = dt.datetime.now(SAST)
     check_access_expiry(now)
     ensure_plans(now.date())
     if args.mode == 'viewer-response':
-        prepare_request(now,args.request_topic,args.request_id)
+        prepare_request(now,args.request_topic,args.request_id,args.request_subject)
         return
     if args.mode == 'growth-test':
         apply_growth_test(now)

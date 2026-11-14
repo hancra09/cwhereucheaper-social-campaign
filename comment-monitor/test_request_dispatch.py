@@ -9,7 +9,7 @@ class DispatchTests(unittest.TestCase):
    if '/runs?' in path:return {'workflow_runs':[{'display_title':'viewer-'+rid+'-1','status':'completed'}]}
    if path.startswith('releases/tags/'):return {'body':json.dumps({'state':'scheduled'})}
   with sqlite3.connect(':memory:') as db:
-   run(db,'test',[('facebook','fake-comment-id','digest','delivery_total_v1')],api)
+   run(db,'test',[('facebook','fake-comment-id','digest','delivery_total_v1','')],api)
    rid=db.execute('SELECT request_id FROM requests').fetchone()[0]
    payload=calls[0][1]
    self.assertNotIn('fake-comment-id',json.dumps(payload))
@@ -23,7 +23,7 @@ class DispatchTests(unittest.TestCase):
    calls.append(path)
    if '/runs?' in path:return {'workflow_runs':[{'display_title':'viewer-'+rid+'-1','status':'in_progress'}]}
   with sqlite3.connect(':memory:') as db:
-   run(db,'test',[('tiktok','id','digest','delivery_total_v1')],api)
+   run(db,'test',[('tiktok','id','digest','delivery_total_v1','')],api)
    rid=db.execute('SELECT request_id FROM requests').fetchone()[0]
    run(db,'test',[],api)
    self.assertEqual(sum('dispatches' in p for p in calls),1)
@@ -47,3 +47,22 @@ class IntakeTests(unittest.TestCase):
    self.assertEqual(len(rows),1)
    self.assertEqual((rows[0][0],rows[0][1],rows[0][3]),('facebook','fake','delivery_total_v1'))
    self.assertNotIn('Please show',repr(rows))
+
+class ProductIntakeTests(unittest.TestCase):
+ def test_synthetic_named_product_stays_private(self):
+  import tempfile
+  from pathlib import Path
+  from request_dispatch import read_candidates
+  body='Please check the price of Rhodes Guava Nectar Juice 1lt?'
+  with tempfile.TemporaryDirectory() as tmp:
+   p=Path(tmp)/'comments.sqlite'
+   with sqlite3.connect(p) as db:
+    db.execute('CREATE TABLE polls(id INTEGER,checked TEXT)');db.execute('INSERT INTO polls VALUES(1,CURRENT_TIMESTAMP)')
+    db.execute('CREATE TABLE comments(id TEXT,body TEXT,owner INTEGER)');db.execute('INSERT INTO comments VALUES(?,?,0)',('fake-comment',body))
+   rows=read_candidates({'facebook':p},[(23895,'Rhodes Guava Nectar Juice 1lt')])
+   self.assertEqual(len(rows),1);self.assertEqual(rows[0][3:],('product_price_v1','23895'))
+   sent=[]
+   with sqlite3.connect(':memory:') as state:
+    run(state,'dummy',rows,lambda path,token,payload=None:sent.append(payload))
+   self.assertEqual(sent[0]['inputs']['request_subject'],'23895')
+   self.assertNotIn(body,json.dumps(sent));self.assertNotIn('fake-comment',json.dumps(sent))

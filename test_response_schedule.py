@@ -55,7 +55,7 @@ class SyntheticPipelineTests(unittest.TestCase):
    calls.append((path,payload))
    if path.endswith('dispatches'):
     inputs=payload['inputs']
-    c.prepare_request(now,inputs['request_topic'],inputs['request_id'])
+    c.prepare_request(now,inputs['request_topic'],inputs['request_id'],inputs.get('request_subject',''))
    elif '/runs?' in path:
     return {'workflow_runs':[{'display_title':calls[0][1]['inputs']['dispatch_id'],'status':'completed'}]}
    elif path.startswith('releases/tags/'):
@@ -72,3 +72,23 @@ class SyntheticPipelineTests(unittest.TestCase):
     self.assertEqual(state.execute('SELECT state FROM requests').fetchone()[0],'scheduled')
    self.assertNotIn(fake,json.dumps(calls))
    self.assertEqual(sum('dispatches' in path for path,_ in calls),1)
+
+class ProductResponseScheduleTests(unittest.TestCase):
+ def test_verified_product_uses_vacant_slot_without_touching_occupied_slot(self):
+  now=dt.datetime.now(c.SAST); slot_time=now+dt.timedelta(hours=4)
+  # Select a deterministic future slot by replacing the slot generator and times.
+  day=now.date()+dt.timedelta(days=1); releases={}
+  def load(tag): return releases.setdefault(tag,{'id':tag,'body':'{}','assets':[]})
+  def read(tag): return releases.get(tag)
+  def save(rel,ledger): rel['body']=json.dumps(ledger)
+  e={'product_id':'23895','product':'Rhodes Guava Nectar Juice 1lt','retailer':'Superb Hyper','price':'9.99','url':'https://superbhyper.co.za/product/a/','checked_sast':now.isoformat()}
+  def run(day,slot,*,now,request_item):
+   self.assertIn('R9.99',request_item['script'])
+   tag=day.strftime('%Y%m%d')+'-'+slot; rel=read(tag); led=json.loads(rel['body'])
+   led.update({'state':'scheduled','posts':{name:{'status':'scheduled'} for name in c.CHANNELS}});save(rel,led)
+  request_id='b'*32
+  with patch.object(c,'future_slots',return_value=[(day,'early')]),patch.object(c,'load_release',side_effect=load),patch.object(c,'read_release',side_effect=read),patch.object(c,'save',side_effect=save),patch.object(c,'existing_posts',return_value=[]),patch.object(c,'render_budget',return_value=[]),patch.object(c,'run',side_effect=run),patch('product_response.research',return_value=e):
+   self.assertTrue(c.prepare_request(now,'product_price_v1',request_id,'23895'))
+   self.assertTrue(c.prepare_request(now,'product_price_v1',request_id,'23895'))
+   with self.assertRaises(ValueError): c.prepare_request(now,'product_price_v1',request_id,'999')
+  self.assertEqual(json.loads(releases['viewer-request-'+request_id]['body'])['state'],'scheduled')

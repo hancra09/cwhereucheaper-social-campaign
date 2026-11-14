@@ -1,8 +1,10 @@
 """Privately select explicit supported requests and dispatch no raw comment text."""
 import datetime as dt
+from contextlib import closing
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import sys
 import urllib.error
@@ -10,9 +12,11 @@ import urllib.request
 import uuid
 from pathlib import Path
 from response import select
+from product_response import match_request
 
 REPO='hancra09/cwhereucheaper-social-campaign'
 API='https://api.github.com/repos/'+REPO+'/'
+CATALOG=Path('/srv/cwhereu/storage-production/data/sa_arbitrage.db')
 SOURCES={name:Path('/var/lib/private/cwhereu-'+name+'-comments/comments.sqlite') for name in ('youtube','tiktok','facebook')}
 
 
@@ -22,12 +26,19 @@ class Candidates(list):
         self.available=set()
 
 
-def read_candidates(paths=SOURCES):
+def load_catalog(path=CATALOG):
+    with closing(sqlite3.connect('file:'+str(path)+'?mode=ro',uri=True,timeout=10)) as db:
+        return list(db.execute("""SELECT p.id,p.name FROM products p JOIN retailers r ON r.id=p.retailer_id
+                  WHERE p.is_active=1 AND lower(r.base_url) IN ('https://superbhyper.co.za','https://superbhyper.co.za/')"""))
+
+
+def read_candidates(paths=SOURCES, product_catalog=None):
     """No text is logged. Require recent successful polls and a known non-owner."""
     out=Candidates()
+    catalog=product_catalog
     for source,path in paths.items():
         try:
-            with sqlite3.connect('file:'+str(path)+'?mode=ro',uri=True,timeout=10) as db:
+            with closing(sqlite3.connect('file:'+str(path)+'?mode=ro',uri=True,timeout=10)) as db:
                 columns={row[1] for row in db.execute('PRAGMA table_info(comments)')}
                 if 'owner' not in columns:
                     continue
@@ -41,8 +52,15 @@ def read_candidates(paths=SOURCES):
                 out.available.add(source)
                 for cid,body in db.execute('SELECT id,body FROM comments WHERE owner=0'):
                     topic=select(body)
+                    subject=''
+                    if not topic and isinstance(body,str) and re.search(r'\b(price|cost|costs|priced|much)\b',body,re.I):
+                        if catalog is None:
+                            try: catalog=load_catalog()
+                            except (OSError,sqlite3.Error): catalog=[]
+                        product_id=match_request(body,catalog)
+                        if product_id: topic,subject='product_price_v1',product_id
                     if topic:
-                        out.append((source,str(cid),hashlib.sha256(body.encode()).hexdigest(),topic))
+                        out.append((source,str(cid),hashlib.sha256(body.encode()).hexdigest(),topic,subject))
         except (OSError,sqlite3.Error,ValueError,TypeError):
             out.available.discard(source)
             print('Comment source unavailable:',source,file=sys.stderr)
@@ -62,21 +80,23 @@ def api(path,token,payload=None):
 def run(db, token, candidates, call=api):
     db.execute('''CREATE TABLE IF NOT EXISTS requests
         (source TEXT NOT NULL, comment_id TEXT NOT NULL, body_sha TEXT NOT NULL,
-         topic TEXT NOT NULL, request_id TEXT NOT NULL, state TEXT NOT NULL,
+         topic TEXT NOT NULL, subject TEXT NOT NULL DEFAULT '', request_id TEXT NOT NULL, state TEXT NOT NULL,
          attempted_at TEXT, attempt INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
          PRIMARY KEY(source,comment_id,body_sha))''')
-    for source,cid,digest,topic in candidates:
-        recent=db.execute("SELECT 1 FROM requests WHERE topic=? AND state IN ('pending','dispatching','scheduled') AND datetime(created_at) >= datetime('now','-7 days') LIMIT 1",(topic,)).fetchone()
+    if 'subject' not in {r[1] for r in db.execute('PRAGMA table_info(requests)')}:
+        db.execute("ALTER TABLE requests ADD COLUMN subject TEXT NOT NULL DEFAULT ''")
+    for source,cid,digest,topic,subject in candidates:
+        recent=db.execute("SELECT 1 FROM requests WHERE topic=? AND subject=? AND state IN ('pending','dispatching','scheduled') AND datetime(created_at) >= datetime('now','-7 days') LIMIT 1",(topic,subject)).fetchone()
         if recent:
             continue
-        db.execute('INSERT OR IGNORE INTO requests(source,comment_id,body_sha,topic,request_id,state) VALUES(?,?,?,?,?,?)',
-                   (source,cid,digest,topic,uuid.uuid4().hex,'pending'))
+        db.execute('INSERT OR IGNORE INTO requests(source,comment_id,body_sha,topic,subject,request_id,state) VALUES(?,?,?,?,?,?,?)',
+                   (source,cid,digest,topic,subject,uuid.uuid4().hex,'pending'))
     db.commit()
-    pending=db.execute("SELECT source,comment_id,body_sha,topic,request_id,state,attempted_at,attempt FROM requests WHERE state IN ('pending','dispatching') ORDER BY rowid LIMIT 1").fetchone()
+    pending=db.execute("SELECT source,comment_id,body_sha,topic,subject,request_id,state,attempted_at,attempt FROM requests WHERE state IN ('pending','dispatching') ORDER BY rowid LIMIT 1").fetchone()
     if not pending:
         print('No supported viewer requests pending.')
         return
-    source,cid,digest,topic,rid,state,attempted,attempt=pending
+    source,cid,digest,topic,subject,rid,state,attempted,attempt=pending
     if state=='dispatching':
         # No blind duplicate while the prior run may still be queued or executing.
         runs=call('actions/workflows/campaign.yml/runs?per_page=100',token)['workflow_runs']
@@ -102,7 +122,7 @@ def run(db, token, candidates, call=api):
     if state == 'pending' and source not in getattr(candidates,'available',{source}):
         print('Request source unavailable; retaining request.')
         return
-    if state == 'pending' and (source,cid,digest,topic) not in candidates:
+    if state == 'pending' and (source,cid,digest,topic,subject) not in candidates:
         db.execute("UPDATE requests SET state='withdrawn' WHERE request_id=?",(rid,)); db.commit()
         print('Request no longer present; no response dispatched.')
         return
@@ -112,7 +132,7 @@ def run(db, token, candidates, call=api):
     db.execute("UPDATE requests SET state='dispatching',attempted_at=?,attempt=? WHERE request_id=?",(stamp,attempt,rid)); db.commit()
     call('actions/workflows/campaign.yml/dispatches',token,{'ref':'main','inputs':{
         'mode':'viewer-response','dispatch_id':'viewer-'+rid+'-'+str(attempt),
-        'request_topic':topic,'request_id':rid}})
+        'request_topic':topic,'request_subject':subject,'request_id':rid}})
     print('Supported viewer request dispatched for researched response.')
 
 

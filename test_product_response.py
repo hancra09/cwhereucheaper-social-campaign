@@ -30,3 +30,25 @@ class StructuredPageTests(unittest.TestCase):
   product['offers'][0]['availability']='https://schema.org/OutOfStock'
   p=Meta();p.feed('<script type="application/ld+json">'+json.dumps({'@graph':[product]})+'</script>')
   with self.assertRaises(ValueError):structured_price(p,url,product['name'])
+
+class RequestPrecisionTests(unittest.TestCase):
+ def test_reordered_exact_title_and_retailer_resolve_safely(self):
+  catalog=[(1,'20kg Ideal Adult Dog Food','Animalsfirst'),(2,'IDEAL ADULT DOG FOOD 20KG','Turfhyper')]
+  self.assertEqual(match_request('What is the price of Ideal Adult Dog Food 20kg at Animals First?',catalog),'1')
+  self.assertEqual(match_request('Please check price of 20kg Ideal Adult Dog Food at Turf Hyper?',catalog),'2')
+  self.assertIsNone(match_request('What is the price of Ideal Adult Dog Food 20kg?',catalog))
+ def test_unrequested_variant_or_different_store_is_not_dropped(self):
+  catalog=[(1,'20kg Ideal Adult Dog Food','Animalsfirst')]
+  for q in ('What is the price of 20kg Ideal Adult Dog Food puppy at Animals First?',
+            'Price of 20kg Ideal Adult Dog Food at Mopani?',
+            'Price of 20kg Ideal Adult Dog Food sugar free?',
+            'Price of 20kg Ideal Adult Dog Food at an unknown store?'):
+   self.assertIsNone(match_request(q,catalog))
+
+class CatalogIndexTests(unittest.TestCase):
+ def test_index_preserves_exact_matching_and_ambiguity(self):
+  from product_response import CatalogIndex
+  data=[(1,'20kg Ideal Adult Dog Food','Animalsfirst'),(2,'IDEAL ADULT DOG FOOD 20KG','Turfhyper'),(3,'Unrelated Soap 100g','Mopani')]
+  index=CatalogIndex(data)
+  for body in ('What is the price of Ideal Adult Dog Food 20kg at Animals First?', 'Price of 20kg Ideal Adult Dog Food puppy?', 'What is the price of Ideal Adult Dog Food 20kg?'):
+   self.assertEqual(match_request(body,index),match_request(body,data))

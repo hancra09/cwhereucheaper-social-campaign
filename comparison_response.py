@@ -3,7 +3,7 @@ import datetime as dt
 import hashlib
 import json
 import re
-from product_response import normalize, research as product_research
+from product_response import normalize, requested_retailers, complete_title_and_context, research as product_research
 
 SAST=dt.timezone(dt.timedelta(hours=2))
 
@@ -17,13 +17,14 @@ def match_request(body,pairs):
     if not isinstance(body,str) or len(body)>500 or re.search(r'https?://|@|[<>`{}\[\]]',body):return None
     text=normalize(body)
     if not re.search(r'\b(compare|comparison|versus|vs|cheaper)\b',text):return None
-    if not re.search(r'\banimals\s*first\b',text) or not re.search(r'\bturf\s*(?:pet\s*)?hyper\b',text):return None
+    retailers=requested_retailers(text)
+    if set(retailers)!= {'animalsfirst','turfhyper'}:return None
     if re.search(r'\b(no|not|never|dont|delivery|delivered|stock|availability|discount|saving|savings)\b',text):return None
     found=[]
     for left_id,left_name,right_id,right_name in pairs:
         if not same_product(left_name,right_name):continue
         names={normalize(left_name),normalize(right_name)}
-        if any(re.search(r'(?<![a-z0-9])'+re.escape(n)+r'(?![a-z0-9])',text) for n in names):
+        if any(complete_title_and_context(text,n,retailers.values()) for n in names):
             found.append((max(map(len,names)),str(left_id)+'-'+str(right_id)))
     if not found:return None
     longest=max(x[0] for x in found);matches={x[1] for x in found if x[0]==longest}

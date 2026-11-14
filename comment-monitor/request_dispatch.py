@@ -12,7 +12,7 @@ import urllib.request
 import uuid
 from pathlib import Path
 from response import select
-from product_response import match_request
+from product_response import CatalogIndex,match_request
 from comparison_response import match_request as match_comparison
 
 REPO='hancra09/cwhereucheaper-social-campaign'
@@ -30,7 +30,7 @@ class Candidates(list):
 
 def load_catalog(path=CATALOG):
     with closing(sqlite3.connect('file:'+str(path)+'?mode=ro',uri=True,timeout=10)) as db:
-        return list(db.execute("""SELECT p.id,p.name FROM products p JOIN retailers r ON r.id=p.retailer_id
+        return list(db.execute("""SELECT p.id,p.name,r.name FROM products p JOIN retailers r ON r.id=p.retailer_id
                   WHERE p.is_active=1 AND lower(r.base_url) IN ('https://superbhyper.co.za','https://superbhyper.co.za/','https://mopani.co.za','https://mopani.co.za/','https://animalsfirst.co.za','https://animalsfirst.co.za/','https://turfhyper.co.za','https://turfhyper.co.za/')"""))
 
 
@@ -79,6 +79,7 @@ def read_candidates(paths=SOURCES, product_catalog=None, comparison_catalog=None
                         if catalog is None:
                             try: catalog=load_catalog()
                             except (OSError,sqlite3.Error): catalog=[]
+                        if not isinstance(catalog,CatalogIndex):catalog=CatalogIndex(catalog)
                         product_id=match_request(body,catalog)
                         if product_id: topic,subject='product_price_v1',product_id
                     if topic:

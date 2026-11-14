@@ -19,3 +19,10 @@ class Tests(unittest.TestCase):
   with patch.object(c,'product_research',side_effect=[E1,dict(E2,product='IDEAL PUPPY DOG FOOD 20KG')]):
    with self.assertRaises(ValueError):c.research('14535-30273')
 if __name__=='__main__':unittest.main()
+
+class ComparisonPrecisionTests(unittest.TestCase):
+ def test_reordered_full_name_allowed_but_extra_variant_rejected(self):
+  pairs=[(14535,E1['product'],30273,E2['product'])]
+  self.assertEqual(c.match_request('Compare Ideal Adult Dog Food 20kg at Animals First and Turf Hyper?',pairs),'14535-30273')
+  self.assertIsNone(c.match_request('Compare 20kg Ideal Adult Dog Food puppy at Animals First and Turf Hyper?',pairs))
+  self.assertIsNone(c.match_request('Compare 20kg Ideal Adult Dog Food at Animals First and Turf Hyper and Mopani?',pairs))

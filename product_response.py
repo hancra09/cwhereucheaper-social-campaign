@@ -1,5 +1,6 @@
 """Research an exact public product-page price with fail-closed evidence checks."""
 import datetime as dt
+from collections import Counter
 import decimal
 import json
 import re
@@ -16,6 +17,49 @@ SAST=dt.timezone(dt.timedelta(hours=2))
 def normalize(s):
     s=unicodedata.normalize('NFKD',s).encode('ascii','ignore').decode().lower()
     return ' '.join(re.findall('[a-z0-9]+',s))
+
+
+# Only generic question words may remain after matching the entire public title.
+# This prevents quietly dropping a requested variant, size, or retailer.
+QUESTION_WORDS=set('a about an and are at can check compare comparison cost costs could do does find for from give has how i in is it know like make me much of on please price priced prices show store stores tell the to video versus vs want what where which would you cheaper'.split())
+RETAILER_ALIASES={
+ 'superbhyper':(('superbhyper',),('superb','hyper')),
+ 'mopani':(('mopani',),),
+ 'animalsfirst':(('animalsfirst',),('animals','first')),
+ 'turfhyper':(('turfhyper',),('turf','hyper'),('turf','pet','hyper')),
+}
+
+
+def requested_retailers(text):
+    words=text.split();found={}
+    for key,aliases in RETAILER_ALIASES.items():
+        for alias in aliases:
+            if any(tuple(words[i:i+len(alias)])==alias for i in range(len(words)-len(alias)+1)):
+                found[key]=alias;break
+    return found
+
+
+def complete_title_and_context(text,title,retailers=()):
+    remaining=Counter(text.split())
+    for word in normalize(title).split():
+        if remaining[word]<1:return False
+        remaining[word]-=1
+    for alias in retailers:
+        for word in alias:
+            if remaining[word]<1:return False
+            remaining[word]-=1
+    return all(word in QUESTION_WORDS for word,n in remaining.items() if n>0)
+
+class CatalogIndex:
+    """Narrow exact-title matching to product titles sharing their first word."""
+    def __init__(self,records):
+        self.index={}
+        for record in records:
+            words=normalize(record[1]).split()
+            if words:self.index.setdefault(words[0],[]).append(record)
+    def matching_candidates(self,text):
+        for word in set(text.split()):
+            yield from self.index.get(word,())
 
 
 def match_request(body, catalog):
@@ -35,15 +79,21 @@ def match_request(body, catalog):
         return None
     if re.search(r'\b(compare|comparison|versus|vs|cheapest|cheaper|lowest|best|between|stock|available|availability|delivery|deliver|delivered|saving|savings|discount|deal|deals)\b',text):
         return None
+    retailers=requested_retailers(text)
+    if len(retailers)>1:return None
+    requested=next(iter(retailers),None)
     matches=[]
-    for product_id,name in catalog:
+    records=catalog.matching_candidates(text) if isinstance(catalog,CatalogIndex) else catalog
+    for record in records:
+        product_id,name=record[:2]
+        retailer=normalize(str(record[2])).replace(' ','') if len(record)>2 else None
+        if requested and retailer!=requested:continue
         canonical=normalize(name)
-        if len(canonical)<12 or len(canonical.split())<3:
-            continue
-        if re.search(r'(?<![a-z0-9])'+re.escape(canonical)+r'(?![a-z0-9])',text):
-            matches.append((len(canonical),str(product_id),canonical))
-    if not matches:
-        return None
+        if len(canonical)<12 or len(canonical.split())<3:continue
+        aliases=[retailers[requested]] if requested else []
+        if complete_title_and_context(text,name,aliases):
+            matches.append((len(canonical),str(product_id)))
+    if not matches:return None
     longest=max(x[0] for x in matches)
     ids={x[1] for x in matches if x[0]==longest}
     return next(iter(ids)) if len(ids)==1 else None

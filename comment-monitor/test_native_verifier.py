@@ -19,7 +19,7 @@ def fixture(path,service,checked):
 def fetch(url,headers):
  assert 'key' not in url
  assert headers['X-Goog-Api-Key']=='secret'
- return {'items':[{'id':'6EsKNU-E2CQ','snippet':{'channelId':v.CHANNEL},'status':{'privacyStatus':'public'}}]}
+ return {'items':[{'id':'6EsKNU-E2CQ','snippet':{'channelId':v.CHANNEL,'publishedAt':'2026-11-14T10:30:48Z'},'status':{'privacyStatus':'public'}}]}
 
 class NativeVerifierTests(unittest.TestCase):
  def test_all_native_paths_and_publication_scope(self):
@@ -27,6 +27,10 @@ class NativeVerifierTests(unittest.TestCase):
    t=Path(d)/'t.sqlite';f=Path(d)/'f.sqlite'
    fixture(t,'tiktok','2026-11-14 11:00:00');fixture(f,'facebook','2026-11-14 11:00:00')
    self.assertEqual(v.verify(RECORD,'secret',NOW,fetch,t,f),{'youtube':'public_confirmed','tiktok':'found_owned','facebook':'found_owned'})
+ def test_old_youtube_video_cannot_verify_a_new_slot(self):
+  old=lambda u,h:{'items':[{'id':'6EsKNU-E2CQ','snippet':{'channelId':v.CHANNEL,'publishedAt':'2026-11-13T10:30:00Z'},'status':{'privacyStatus':'public'}}]}
+  with tempfile.TemporaryDirectory() as d:
+   self.assertEqual(v.verify(RECORD,'secret',NOW,old,Path(d)/'missing',Path(d)/'missing')['youtube'],'unknown')
  def test_stale_and_missing_inventory_are_unknown_not_failed(self):
   with tempfile.TemporaryDirectory() as d:
    t=Path(d)/'t.sqlite';fixture(t,'tiktok','2026-11-14 09:00:00')

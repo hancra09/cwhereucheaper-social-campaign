@@ -77,14 +77,19 @@ def inventory(path,service,due,now):
     except (OSError,sqlite3.Error,ValueError,TypeError):return None
 
 
-def youtube(id,key,fetch=get_json):
+def youtube(id,key,fetch=get_json,due=None,now=None):
     if not key or not re.fullmatch(r'[A-Za-z0-9_-]{11}',id):return 'unknown'
     try:
         params=urllib.parse.urlencode({'part':'snippet,status','id':id})
         data=fetch(YOUTUBE+'?'+params,{'X-Goog-Api-Key':key})
         rows=data.get('items',[])
         if len(rows)!=1 or rows[0].get('id')!=id:return 'unknown'
-        if rows[0].get('snippet',{}).get('channelId')!=CHANNEL:return 'unknown'
+        snippet=rows[0].get('snippet',{})
+        if snippet.get('channelId')!=CHANNEL:return 'unknown'
+        if due is not None:
+            published=dt.datetime.fromisoformat(snippet['publishedAt'].replace('Z','+00:00'))
+            now=now or dt.datetime.now(dt.timezone.utc)
+            if published.tzinfo is None or not due-dt.timedelta(minutes=15)<=published<=now+dt.timedelta(minutes=5):return 'unknown'
         return 'public_confirmed' if rows[0].get('status',{}).get('privacyStatus')=='public' else 'unknown'
     except Exception:return 'unknown'
 
@@ -99,7 +104,7 @@ def verify(record,key,now=None,fetch=get_json,tiktok=TIKTOK,facebook=FACEBOOK):
         if row.get('status')!='sent':result[service]='pending' if row.get('status') in ('scheduled','sending') else 'unknown';continue
         ident=identify(service,row.get('url'))
         if not ident:result[service]='unknown';continue
-        if service=='youtube':result[service]=youtube(ident,key,fetch)
+        if service=='youtube':result[service]=youtube(ident,key,fetch,due,now)
         else:
             source=inventory(tiktok if service=='tiktok' else facebook,service,due,now)
             result[service]='found_owned' if source is not None and ident in source else 'unknown'

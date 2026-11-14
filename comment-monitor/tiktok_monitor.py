@@ -98,9 +98,11 @@ def all_pages(name, args, key, token, fetch=None, max_pages=100):
     raise RuntimeError('TikTok pagination limit reached')
 
 
-def collect(token, fetch=None):
+def collect(token, fetch=None, posts_out=None):
     posts = all_pages('account_user_post_list_get', {'fields': ['item_id', 'create_time'],
                       'max_count': 20}, 'videos', token, fetch, max_pages=50)
+    if posts_out is not None:
+        posts_out.extend(str(post['item_id']) for post in posts)
     rows = []
     for post in posts:
         video = str(post['item_id'])
@@ -123,7 +125,7 @@ def row(comment, video, parent):
             str(comment['text']), int(bool(comment.get('owner', False))))
 
 
-def store(path, rows):
+def store(path, rows, posts=None):
     db = sqlite3.connect(path)
     os.chmod(path, 0o600)
     try:
@@ -131,6 +133,7 @@ def store(path, rows):
             (id TEXT PRIMARY KEY, video TEXT NOT NULL, parent TEXT NOT NULL, published TEXT NOT NULL,
              body TEXT NOT NULL, owner INTEGER NOT NULL, state TEXT NOT NULL DEFAULT 'unreviewed')''')
         db.execute('CREATE TABLE IF NOT EXISTS polls (id INTEGER PRIMARY KEY CHECK(id=1), checked TEXT NOT NULL)')
+        db.execute('CREATE TABLE IF NOT EXISTS published_posts (id TEXT PRIMARY KEY)')
         with db:
             db.execute('CREATE TEMP TABLE seen_ids (id TEXT PRIMARY KEY)')
             db.executemany('INSERT OR IGNORE INTO seen_ids(id) VALUES(?)', [(r[0],) for r in rows])
@@ -138,6 +141,9 @@ def store(path, rows):
                 ON CONFLICT(id) DO UPDATE SET body=excluded.body, owner=excluded.owner,
                 state=CASE WHEN comments.body != excluded.body THEN 'unreviewed' ELSE comments.state END''', rows)
             db.execute('DELETE FROM comments WHERE id NOT IN (SELECT id FROM seen_ids)')
+            if posts is not None:
+                db.execute('DELETE FROM published_posts')
+                db.executemany('INSERT OR IGNORE INTO published_posts(id) VALUES(?)',[(p,) for p in posts])
             db.execute('''INSERT INTO polls(id,checked) VALUES(1,CURRENT_TIMESTAMP)
                        ON CONFLICT(id) DO UPDATE SET checked=CURRENT_TIMESTAMP''')
     finally:
@@ -148,8 +154,9 @@ def main():
     credentials = Path(os.environ['CREDENTIALS_DIRECTORY'])
     state = Path(os.environ['STATE_DIRECTORY'])
     token = access_token(credentials, state)
-    rows, videos = collect(token)
-    store(state / 'comments.sqlite', rows)
+    post_ids=[]
+    rows, videos = collect(token,posts_out=post_ids)
+    store(state / 'comments.sqlite', rows,post_ids)
     print('TikTok public comment poll succeeded; videos:', videos, 'comments:', len(rows))
 
 

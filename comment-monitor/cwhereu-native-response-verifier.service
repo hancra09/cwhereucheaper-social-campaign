@@ -1,0 +1,24 @@
+[Unit]
+Description=CWhereUCheaper native response publication verification
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+StateDirectory=cwhereu-native-response-verifier
+StateDirectoryMode=0700
+LoadCredentialEncrypted=youtube-api-key:/etc/cwhereu-comment-monitor/youtube-api-key.cred
+ExecStart=/usr/bin/python3 /usr/local/lib/cwhereu-comment-monitor/native_verifier.py
+TimeoutStartSec=180
+MemoryMax=128M
+CPUQuota=5%
+Nice=19
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX

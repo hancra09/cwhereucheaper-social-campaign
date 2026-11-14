@@ -1,0 +1,11 @@
+[Unit]
+Description=Verify response posts against native platform records twice hourly
+
+[Timer]
+OnCalendar=*-*-* *:15,45:00
+AccuracySec=5s
+Persistent=true
+Unit=cwhereu-native-response-verifier.service
+
+[Install]
+WantedBy=timers.target

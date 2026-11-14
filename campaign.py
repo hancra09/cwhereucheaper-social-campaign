@@ -676,10 +676,63 @@ def prepare_request(now, topic, request_id, subject="", origin=""):
     return True
 
 
+def public_post_link(service,url):
+    """Accept only canonical public links for the intended channel."""
+    import re
+    if not isinstance(url,str):return ''
+    u=urllib.parse.urlsplit(url)
+    if u.scheme!='https' or u.username or u.password:return ''
+    host=(u.hostname or '').lower()
+    if service=='youtube' and host in ('youtube.com','www.youtube.com','m.youtube.com'):
+        m=re.fullmatch(r'/shorts/([A-Za-z0-9_-]{11})/?',u.path)
+        if m:return 'https://www.youtube.com/shorts/'+m.group(1)
+    if service=='tiktok' and host in ('tiktok.com','www.tiktok.com'):
+        m=re.fullmatch(r'/@cwhereucheaper\.co/video/([0-9]+)/?',u.path,re.I)
+        if m:return 'https://www.tiktok.com/@cwhereucheaper.co/video/'+m.group(1)
+    if service=='facebook' and host in ('facebook.com','www.facebook.com','m.facebook.com'):
+        m=re.fullmatch(r'/reel/([0-9]+)/?',u.path)
+        if m:return 'https://www.facebook.com/reel/'+m.group(1)+'/'
+    return ''
+
+
+def publish_response_evidence(now,posts):
+    """Publish only public post links/status for response slots; never raw comments."""
+    cutoff=now-dt.timedelta(minutes=15)
+    day=max(START,cutoff.date()-dt.timedelta(days=AUDIT_DAYS-1))
+    while day<=cutoff.date():
+        for slot,when in SLOTS.items():
+            if dt.datetime.combine(day,when,SAST)>cutoff:continue
+            tag=day.strftime('%Y%m%d')+'-'+slot
+            release=read_release(tag)
+            if not release:continue
+            ledger=json.loads(release['body'] or '{}')
+            if not ledger.get('response_request_id'):continue
+            result={'slot':tag,'request_id':ledger['response_request_id'],
+                    'synthetic':bool(ledger.get('content',{}).get('synthetic_test')),'posts':{}}
+            for service,channel in CHANNELS.items():
+                ident=(ledger.get('posts',{}).get(service) or {}).get('id')
+                matches=[p for p in posts if p.get('id')==ident and p.get('channelId')==channel] if ident else []
+                if len(matches)!=1:
+                    result['posts'][service]={'status':'unknown','url':''};continue
+                row=matches[0];status=row.get('status') or 'unknown'
+                result['posts'][service]={'status':status,'url':public_post_link(service,row.get('externalLink')) if status=='sent' else ''}
+            tag_out='response-native-'+tag
+            prior=read_release(tag_out)
+            if prior and json.loads(prior.get('body') or '{}')==result:continue
+            save(prior or load_release(tag_out),result)
+            print('Updated public response publication evidence:',tag)
+        day+=dt.timedelta(days=1)
+
+
 def audit():
     now = dt.datetime.now(SAST)
     posts = existing_posts(now=now)
     relevant = campaign_posts(posts)
+    evidence_error=None
+    try:
+        publish_response_evidence(now,relevant)
+    except Exception as exc:
+        evidence_error=type(exc).__name__
     failed = [p for p in relevant if p['status'] in ('error', 'needs_approval', 'draft')]
     cutoff = now - dt.timedelta(minutes=15)
     day = max(START, cutoff.date() - dt.timedelta(days=AUDIT_DAYS - 1))
@@ -697,6 +750,8 @@ def audit():
     print(json.dumps({s: sum(p['status'] == s for p in relevant) for s in {p['status'] for p in relevant}}))
     if failed:
         raise RuntimeError('Campaign publishing failure: ' + json.dumps(failed))
+    if evidence_error:
+        raise RuntimeError('Response publication evidence unavailable: '+evidence_error)
 
 
 def review():

@@ -65,3 +65,12 @@ class TikTokMonitorTests(unittest.TestCase):
 
 
 if __name__ == '__main__': unittest.main()
+
+class PublishedPostTests(unittest.TestCase):
+ def test_published_inventory_updates_atomically(self):
+  with tempfile.TemporaryDirectory() as d:
+   path=Path(d)/'comments.sqlite'
+   store(path,[],['v1','v2'])
+   with sqlite3.connect(path) as db:self.assertEqual(db.execute('select count(*) from published_posts').fetchone()[0],2)
+   store(path,[],['v2'])
+   with sqlite3.connect(path) as db:self.assertEqual(db.execute('select id from published_posts').fetchall(),[('v2',)])

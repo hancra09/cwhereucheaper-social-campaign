@@ -30,3 +30,12 @@ class FacebookMonitorTests(unittest.TestCase):
 
 
 if __name__ == '__main__': unittest.main()
+
+class PublishedPostTests(unittest.TestCase):
+ def test_published_inventory_updates_atomically(self):
+  import tempfile,sqlite3
+  from pathlib import Path
+  with tempfile.TemporaryDirectory() as d:
+   path=Path(d)/'comments.sqlite'
+   m.store(path,[],[('1','https://www.facebook.com/reel/123/')])
+   with sqlite3.connect(path) as db:self.assertEqual(db.execute('select id,permalink from published_posts').fetchall(),[('1','https://www.facebook.com/reel/123/')])

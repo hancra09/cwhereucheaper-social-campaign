@@ -207,7 +207,7 @@ class CampaignSafety(unittest.TestCase):
                     posts.append({'channelId':channel,'status':'sent',
                         'text':'utm_campaign=evergreen_shopping_tips\nutm_content='+tag+'\n'})
         with tempfile.TemporaryDirectory() as directory, patch.object(c.dt,'datetime',Frozen), \
-                patch.object(c,'existing_posts',return_value=posts), patch.object(c,'Path') as path:
+                patch.object(c,'existing_posts',return_value=posts), patch.object(c,'publish_response_evidence'), patch.object(c,'Path') as path:
             c.audit()
             self.assertEqual(len(posts),63)
             with patch.object(c,'existing_posts',return_value=posts[:-1]):
@@ -317,3 +317,29 @@ class MediaDeliverySafety(unittest.TestCase):
         payload=api.call_args.args[1]['input']
         self.assertEqual(payload,{'id':'same','assets':[{'video':{'url':'https://public/video.mp4'}}], 'metadata': {'tiktok': {'isAiGenerated': True}}})
         self.assertNotIn('createPost',api.call_args.args[0])
+
+class NativeLinkEvidenceTests(unittest.TestCase):
+ def test_link_hosts_and_owned_tiktok_are_strict(self):
+  self.assertEqual(c.public_post_link('youtube','https://www.youtube.com/shorts/6EsKNU-E2CQ?feature=share'),'https://www.youtube.com/shorts/6EsKNU-E2CQ')
+  self.assertEqual(c.public_post_link('tiktok','https://tiktok.com/@cwhereucheaper.co/video/12345'),'https://www.tiktok.com/@cwhereucheaper.co/video/12345')
+  self.assertEqual(c.public_post_link('facebook','https://www.facebook.com/reel/12345/'),'https://www.facebook.com/reel/12345/')
+  for url in ('https://evil.example/reel/12345','http://facebook.com/reel/12345/','https://user:pass@facebook.com/reel/12345/'):
+   self.assertEqual(c.public_post_link('facebook',url),'')
+  self.assertEqual(c.public_post_link('tiktok','https://tiktok.com/@other/video/12345'),'')
+
+class ResponseEvidenceTests(unittest.TestCase):
+ def test_only_exact_recorded_post_ids_produce_public_evidence(self):
+  now=dt.datetime(2026,11,14,14,0,tzinfo=c.SAST)
+  tag='20261114-am';ids={s:'id-'+s for s in c.CHANNELS}
+  ledger={'response_request_id':'a'*32,'content':{'synthetic_test':True},'posts':{s:{'id':ids[s]} for s in ids}}
+  posts=[{'id':ids['youtube'],'channelId':c.CHANNELS['youtube'],'status':'sent','externalLink':'https://www.youtube.com/shorts/6EsKNU-E2CQ'},
+         {'id':'different','channelId':c.CHANNELS['tiktok'],'status':'sent','externalLink':'https://www.tiktok.com/@cwhereucheaper.co/video/123'},
+         {'id':ids['facebook'],'channelId':c.CHANNELS['facebook'],'status':'sending','externalLink':'https://www.facebook.com/reel/123/'}]
+  def read(name):return {'id':1,'body':json.dumps(ledger)} if name==tag else None
+  with patch.object(c,'read_release',side_effect=read),patch.object(c,'load_release',return_value={'id':2,'body':'{}'}),patch.object(c,'save') as save:
+   c.publish_response_evidence(now,posts)
+  evidence=save.call_args.args[1]
+  self.assertEqual(evidence['posts']['youtube']['status'],'sent')
+  self.assertEqual(evidence['posts']['tiktok'],{'status':'unknown','url':''})
+  self.assertEqual(evidence['posts']['facebook'],{'status':'sending','url':''})
+  self.assertTrue(evidence['synthetic'])

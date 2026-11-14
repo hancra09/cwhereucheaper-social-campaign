@@ -20,6 +20,9 @@ jobs:
           key: cwuc-kokoro-model-files-v1.1-${{ runner.os }}-${{ runner.arch }}
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - run: python3 -m unittest -v test_product_response.py
+      - run: python3 synthetic_unit_response.py
+        env:
+          GH_TOKEN: ${{ github.token }}
       - run: python3 synthetic_product_response.py
         env:
           GH_TOKEN: ${{ github.token }}

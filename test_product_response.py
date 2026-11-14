@@ -12,9 +12,9 @@ class Tests(unittest.TestCase):
    self.assertIsNone(match_request(bad,catalog))
  def test_exact_live_evidence_and_dated_output(self):
   e=research('23895',fetch,NOW); v=build(e)
-  self.assertIn('R9.99',v['script']);self.assertIn('14 November 2026',v['script']);self.assertIn('before delivery',v['script'])
+  self.assertIn('R9.99',v['script']);self.assertIn('14 November 2026',v['script']);self.assertIn('before delivery',v['script']);self.assertIn('13:20 SAST',v['caption']);self.assertTrue(e['checked_sast'].endswith('+02:00'))
  def test_bad_or_stale_evidence_is_rejected(self):
   with self.assertRaises(ValueError): research('23895',lambda u: fetch(u).replace(b'9.99',b'9.98') if 'shopping-opportunities' not in u else fetch(u),NOW)
-  with self.assertRaises(ValueError): research('23895',fetch,NOW+dt.timedelta(hours=4))
+  with self.assertRaises(ValueError): research('23895',fetch,NOW+dt.timedelta(hours=7))
   with self.assertRaises(ValueError): research('23895',lambda u: json.dumps({'opportunities':[dict(PRODUCT,url='https://127.0.0.1/')]}).encode(),NOW)
 if __name__=='__main__':unittest.main()

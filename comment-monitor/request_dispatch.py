@@ -29,7 +29,7 @@ class Candidates(list):
 def load_catalog(path=CATALOG):
     with closing(sqlite3.connect('file:'+str(path)+'?mode=ro',uri=True,timeout=10)) as db:
         return list(db.execute("""SELECT p.id,p.name FROM products p JOIN retailers r ON r.id=p.retailer_id
-                  WHERE p.is_active=1 AND lower(r.base_url) IN ('https://superbhyper.co.za','https://superbhyper.co.za/')"""))
+                  WHERE p.is_active=1 AND lower(r.base_url) IN ('https://superbhyper.co.za','https://superbhyper.co.za/','https://mopani.co.za','https://mopani.co.za/')"""))
 
 
 def read_candidates(paths=SOURCES, product_catalog=None):

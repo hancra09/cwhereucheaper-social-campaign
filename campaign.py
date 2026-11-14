@@ -587,7 +587,7 @@ def prepare_request(now, topic, request_id, subject=""):
     from response import research, build
     if not re.fullmatch(r'[a-f0-9]{32}',request_id or ''):
         raise ValueError('Invalid request identifier')
-    if not ((topic=='delivery_total_v1' and not subject) or (topic=='product_price_v1' and re.fullmatch(r'[1-9][0-9]{0,9}',subject or ''))):
+    if not ((topic in ('delivery_total_v1','unit_price_v1') and not subject) or (topic=='product_price_v1' and re.fullmatch(r'[1-9][0-9]{0,9}',subject or ''))):
         raise ValueError('Unsupported request or subject')
     request_release = load_release('viewer-request-' + request_id)
     request_ledger = json.loads(request_release['body'] or '{}')
@@ -604,8 +604,8 @@ def prepare_request(now, topic, request_id, subject=""):
         if len(render_budget(now)) >= DAILY_RENDER_LIMIT:
             print('Request deferred: daily render budget exhausted.')
             return False
-        if topic=='delivery_total_v1':
-            item=build(topic,research())
+        if topic in ('delivery_total_v1','unit_price_v1'):
+            item=build(topic,research(topic=topic))
         else:
             from product_response import research as product_research, build as product_build
             item=product_build(product_research(subject))
@@ -631,8 +631,8 @@ def prepare_request(now, topic, request_id, subject=""):
     day = dt.datetime.strptime(day_text,'%Y%m%d').date()
     if now > dt.datetime.combine(day,SLOTS[slot],SAST) - dt.timedelta(hours=MIN_LEAD_HOURS):
         raise RuntimeError('Reserved response slot too close; no post created.')
-    if topic=='delivery_total_v1':
-        research()  # Reconfirm source before scheduling.
+    if topic in ('delivery_total_v1','unit_price_v1'):
+        research(topic=topic)  # Reconfirm source before scheduling.
     slot_release = read_release(selected)
     if not slot_release:
         raise RuntimeError('Reserved response slot missing; review required.')

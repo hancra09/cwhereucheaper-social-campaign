@@ -22,7 +22,9 @@ def photo(im,asset,box,scale=1):
  im.paste(a,(round(x+(w-a.width)/2),round(y+h-a.height)),a)
 def header(im,dark=False):
  text(im,'CWHEREUCHEAPER', (88,105),38,WHITE if dark else NAVY,True)
- rr(im,(88,177,515,226),YELLOW,22);text(im,'ILLUSTRATIVE EXAMPLE',(301,202),25,NAVY,True,'mm')
+ rr(im,(88,177,600,226),YELLOW,22)
+ label='OBSERVED '+CFG['checked_on'] if CFG.get('checked_on') else 'ILLUSTRATIVE EXAMPLE'
+ text(im,label,(344,202),25,NAVY,True,'mm')
  text(im,'Generic AI product visuals • not a retailer offer',(88,1714),27,GREY if dark else '#5B6470')
  # Safe-area progress cue reinforces pace without frame numbers.
 def stamp(im,s,color=BLUE):
@@ -194,7 +196,7 @@ def lesson(item,tag):
   'delivery':[('EXACT ITEM','Match the product.'),('DELIVERY + FEES','Add the checkout charges.'),('GETTING IT HOME','Include relevant travel costs.')],
   'unit':[('SAME PRODUCT','Check brand and variant.'),('SAME UNIT','Compare equivalent quantities.'),('FINAL COST','Check the full amount.')],
  }
- cfg={'response_request':bool(item.get('response_request_id')),'title':item['title'],'core':core,'facts':facts,'hook_card':hook,'wrap_card':wrap,'checks':checks.get(kind,[('RIGHT ITEM','Match your household needs.'),('FINAL TOTAL','Include delivery and fees.'),('USEFUL AMOUNT','Avoid buying waste.')]),'fact_cards':['Check the detail.','Compare on the same basis.','Decide from the full picture.'],'asset':'bottles.png' if re.search('millilitre|litre|bottle',core,re.I) else 'pouches.png' if kind=='unit' else 'basket.png','comparison':None}
+ cfg={'checked_on':item.get('evidence_checked_sast','')[:10], 'response_request':bool(item.get('response_request_id')),'title':item['title'],'core':core,'facts':facts,'hook_card':hook,'wrap_card':wrap,'checks':checks.get(kind,[('RIGHT ITEM','Match your household needs.'),('FINAL TOTAL','Include delivery and fees.'),('USEFUL AMOUNT','Avoid buying waste.')]),'fact_cards':['Check the detail.','Compare on the same basis.','Decide from the full picture.'],'asset':'bottles.png' if re.search('millilitre|litre|bottle',core,re.I) else 'pouches.png' if kind=='unit' else 'basket.png','comparison':None}
  cfg['segments']=[hook,*facts,wrap,'Compare before checkout. Your wallet can thank you later.']
  if item['title']=='A small bottle can have a smaller unit price':
   cfg['segments']=["Bigger bottle, better deal? My trolley has trust issues.","In this example, five hundred millilitres for twenty rand is forty rand per litre.","The one-litre bottle? Forty-five rand per litre.","Small bottle, smaller unit price. Big bottle... big confidence.","Match the exact product first. Your wallet deserves fewer plot twists.","Compare before checkout. Your wallet can thank you later."]

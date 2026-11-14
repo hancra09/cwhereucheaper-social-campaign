@@ -9,7 +9,7 @@ import urllib.request
 from html.parser import HTMLParser
 
 ORIGIN='https://www.cwhereucheaper.co.za'
-ALLOWED_HOST='superbhyper.co.za'
+HOSTS={'superbhyper.co.za':('superbhyper','Superb Hyper'),'mopani.co.za':('mopani','Mopani')}
 SAST=dt.timezone(dt.timedelta(hours=2))
 
 
@@ -61,14 +61,14 @@ class Meta(HTMLParser):
 class SafeRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,req,fp,code,msg,headers,newurl):
         parsed=urllib.parse.urlsplit(newurl)
-        if parsed.scheme!='https' or parsed.hostname not in (ALLOWED_HOST,'www.'+ALLOWED_HOST):
+        if parsed.scheme!='https' or parsed.hostname not in {h for host in HOSTS for h in (host,'www.'+host)}:
             raise ValueError('Unexpected retailer redirect')
         return super().redirect_request(req,fp,code,msg,headers,newurl)
 
 
 def get(url):
     parsed=urllib.parse.urlsplit(url)
-    if parsed.scheme!='https' or parsed.hostname not in ('www.cwhereucheaper.co.za',ALLOWED_HOST,'www.'+ALLOWED_HOST):
+    if parsed.scheme!='https' or parsed.hostname not in {'www.cwhereucheaper.co.za',*(h for host in HOSTS for h in (host,'www.'+host))}:
         raise ValueError('Unexpected source domain')
     opener=urllib.request.build_opener(SafeRedirect())
     req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 (compatible; CWhereUCheaper research)'})
@@ -89,11 +89,13 @@ def research(product_id, fetch=None, now=None):
     item=rows[0]
     if str(item.get('product_id'))!=str(product_id):raise ValueError('Product mismatch')
     parsed=urllib.parse.urlsplit(item.get('url',''))
-    if parsed.scheme!='https' or parsed.hostname not in (ALLOWED_HOST,'www.'+ALLOWED_HOST) or parsed.username or parsed.password:
+    if parsed.scheme!='https' or parsed.hostname not in {h for host in HOSTS for h in (host,'www.'+host)} or parsed.username or parsed.password:
         raise ValueError('Retailer not supported')
-    if normalize(item.get('retailer',''))!='superbhyper':raise ValueError('Retailer mismatch')
+    host=parsed.hostname.removeprefix('www.')
+    retailer_code,retailer_display=HOSTS[host]
+    if normalize(item.get('retailer',''))!=retailer_code:raise ValueError('Retailer mismatch')
     observed=dt.datetime.fromisoformat(item['observed_at'].replace('Z','+00:00'))
-    if observed.tzinfo is None or not dt.timedelta(minutes=-5)<=now-observed<=dt.timedelta(hours=2):
+    if observed.tzinfo is None or not dt.timedelta(minutes=-5)<=now-observed<=dt.timedelta(hours=6):
         raise ValueError('Catalogue observation stale')
     price=decimal.Decimal(str(item['price']))
     if not price.is_finite() or price<=0 or price>100000 or price.as_tuple().exponent < -2:
@@ -107,10 +109,10 @@ def research(product_id, fetch=None, now=None):
     if one('product:price:currency').upper()!='ZAR' or decimal.Decimal(one('product:price:amount'))!=price:
         raise ValueError('Retailer price not confirmed')
     title=normalize(one('og:title')); product=normalize(item.get('product',''))
-    if not product or not title.startswith(product+' '):
+    if not product or not (title==product or title.startswith(product+' ')):
         raise ValueError('Retailer product title not confirmed')
     timestamp=now.astimezone(SAST)
-    return {'product_id':str(product_id),'product':item['product'],'retailer':'Superb Hyper',
+    return {'product_id':str(product_id),'product':item['product'],'retailer':retailer_display,
             'price':format(price,'.2f'),'url':item['url'],'checked_sast':timestamp.isoformat()}
 
 
@@ -118,8 +120,9 @@ def build(evidence):
     checked=dt.datetime.fromisoformat(evidence['checked_sast'])
     date=checked.strftime('%d %B %Y'); time=checked.strftime('%H:%M')
     product=evidence['product']; retailer=evidence['retailer']; price=evidence['price']
-    return {'title':'Price check: '+product,
-      'script':f"On {date}, at {time}, the {retailer} product page listed {product} at R{price}. That is the item price before delivery or other charges. Prices and availability can change, so check the retailer page before you buy.",
+    if len(product)>70:raise ValueError('Product title is too long for a clear video')
+    return {'title':'R'+price+': '+product,
+      'script':f"On {date}, the {retailer} product page listed {product} at R{price}. That is the item price before delivery or other charges. Prices and availability can change, so check the retailer page before you buy.",
       'caption':f"Price check at {time} SAST on {date}: {retailer} displayed {product} at R{price}. Item price only; delivery and availability may change. Verify before buying: {evidence['url']}",
       'style':'Educational','theme':'shopping-check','growth_hashtags':'#PriceCheck #SmartShopping #SouthAfrica',
       'creative_version':'creative-v2','evidence_checked_sast':evidence['checked_sast']}

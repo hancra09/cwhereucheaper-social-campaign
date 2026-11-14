@@ -245,3 +245,29 @@ class RecoveryAndQueueTests(unittest.TestCase):
    real_run(db,'dummy',[('youtube','real','hash','unit_price_v1','')],api)
    self.assertEqual(db.execute('select state from requests').fetchone()[0],'pending')
    self.assertFalse(any('dispatches' in p for p in calls))
+
+class CoarseHealthTests(unittest.TestCase):
+ def test_missing_sources_are_unknown_and_unhandled_has_no_details(self):
+  from request_dispatch import Candidates,health_flags
+  candidates=Candidates();candidates.available.update(('youtube','tiktok'))
+  with sqlite3.connect(':memory:') as db:
+   db.execute('CREATE TABLE requests(state TEXT,created_at TEXT)')
+   flags=health_flags(candidates,db,True)
+   self.assertEqual(flags,{'sources':'attention','unhandled':'unknown','stalled':'none','processing':'ok'})
+   candidates.unhandled.append(('facebook','private-id','private-hash'))
+   flags=health_flags(candidates,db,True)
+   self.assertEqual(flags['unhandled'],'present');self.assertNotIn('private-id',str(flags))
+ def test_old_pending_request_is_marked_without_counts(self):
+  from request_dispatch import Candidates,health_flags
+  candidates=Candidates();candidates.available.update(('youtube','tiktok','facebook'))
+  with sqlite3.connect(':memory:') as db:
+   db.execute('CREATE TABLE requests(state TEXT,created_at TEXT)');db.execute("INSERT INTO requests VALUES('pending','2000-01-01 00:00:00')")
+   flags=health_flags(candidates,db,True);self.assertEqual(flags['stalled'],'present');self.assertEqual(flags['sources'],'available')
+
+class CoarseHealthUnknownTests(unittest.TestCase):
+ def test_missing_state_does_not_claim_no_stalled_requests(self):
+  from request_dispatch import Candidates,health_flags
+  c=Candidates();c.available.update(('youtube','tiktok','facebook'))
+  with sqlite3.connect(':memory:') as db:
+   flags=health_flags(c,db,True)
+  self.assertEqual(flags['stalled'],'unknown');self.assertEqual(flags['processing'],'attention')

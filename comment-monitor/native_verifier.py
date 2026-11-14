@@ -127,11 +127,19 @@ def store(path,record,result,now=None):
 def main():
     key=(Path(os.environ['CREDENTIALS_DIRECTORY'])/'youtube-api-key').read_text().strip()
     path=Path(os.environ['STATE_DIRECTORY'])/'verification.sqlite'
-    rows=records();counts={'public_confirmed':0,'found_owned':0,'pending':0,'unknown':0}
+    rows=records();counts={'public_confirmed':0,'found_owned':0,'pending':0,'unknown':0};latest=None
     for record in rows:
         result=verify(record,key);store(path,record,result)
+        if latest is None or due_time(record['slot'])>due_time(latest[0]['slot']):latest=(record,result)
         for status in result.values():counts[status]+=1
     print('Native response checks:',len(rows),'responses;',counts)
+    try:
+        from health_signal import emit
+        flags={'slot':'','youtube':'none','tiktok':'none','facebook':'none'} if latest is None else {'slot':latest[0]['slot'],**latest[1]}
+        token=(Path(os.environ['CREDENTIALS_DIRECTORY'])/'github-token').read_text().strip()
+        emit('native',flags,Path(os.environ['STATE_DIRECTORY']),token)
+    except Exception as exc:
+        print('Coarse native status unavailable:',type(exc).__name__,file=sys.stderr)
 
 if __name__=='__main__':
     try:main()

@@ -1,0 +1,32 @@
+name: Viewer response health status
+run-name: Viewer response health status
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        type: string
+        required: true
+      payload:
+        type: string
+        required: true
+      observed_at:
+        type: string
+        required: true
+permissions:
+  contents: write
+concurrency:
+  group: cwuc-coarse-health-status
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      HEALTH_COMPONENT: ${{ inputs.component }}
+      HEALTH_PAYLOAD: ${{ inputs.payload }}
+      HEALTH_OBSERVED_AT: ${{ inputs.observed_at }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Publish only validated coarse status
+        run: python3 comment-monitor/monitor_status.py

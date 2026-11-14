@@ -204,6 +204,18 @@ def run(db, token, candidates, call=api, *, guard_active=True):
     print('No viewer request eligible for dispatch yet.')
 
 
+def health_flags(candidates,db,processing_ok):
+    expected={'youtube','tiktok','facebook'}
+    available=expected.issubset(getattr(candidates,'available',set()))
+    unhandled='present' if getattr(candidates,'unhandled',[]) else ('none' if available else 'unknown')
+    try:
+        stalled=bool(db.execute("SELECT 1 FROM requests WHERE state IN ('pending','dispatching') AND datetime(created_at)<datetime('now','-24 hours') LIMIT 1").fetchone())
+    except sqlite3.Error:
+        stalled=None;processing_ok=False
+    return {'sources':'available' if available else 'attention','unhandled':unhandled,
+            'stalled':'unknown' if stalled is None else ('present' if stalled else 'none'),'processing':'ok' if processing_ok else 'attention'}
+
+
 def main():
     state=Path(os.environ['STATE_DIRECTORY']); state.mkdir(mode=0o700,parents=True,exist_ok=True)
     token=(Path(os.environ['CREDENTIALS_DIRECTORY'])/'github-token').read_text().strip()
@@ -215,7 +227,15 @@ def main():
             include_approved_synthetic(candidates,state)
         except (OSError,ValueError,TypeError,KeyError):
             print('Synthetic test manifest invalid; skipping it.',file=sys.stderr)
-        run(db,token,candidates)
+        failure=None
+        try:run(db,token,candidates)
+        except Exception as exc:failure=exc
+        try:
+            from health_signal import emit
+            emit('selector',health_flags(candidates,db,failure is None),state,token)
+        except Exception as exc:
+            print('Coarse health status unavailable:',type(exc).__name__,file=sys.stderr)
+        if failure is not None:raise failure
         manifest=state/'approved-synthetic-test.json'
         if manifest.exists():
             try:

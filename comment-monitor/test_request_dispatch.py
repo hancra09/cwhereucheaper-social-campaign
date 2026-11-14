@@ -172,3 +172,27 @@ class DailyPriorityTests(unittest.TestCase):
     if path.startswith('releases/tags/'):return {'body':'{"slot":"20261116-am"}'}
    with patch.object(d.dt,'datetime',Clock):d.run(db,'dummy',original,api)
    self.assertEqual(sum('dispatches' in path for path,_ in calls),1)
+
+class SyntheticManifestTests(unittest.TestCase):
+ def test_only_active_approved_test_dispatches_with_label(self):
+  import datetime,tempfile
+  from pathlib import Path
+  from request_dispatch import Candidates,include_approved_synthetic
+  start=datetime.datetime(2026,11,14,22,1,tzinfo=datetime.timezone.utc)
+  with tempfile.TemporaryDirectory() as tmp:
+   p=Path(tmp)/'approved-synthetic-test.json'
+   p.write_text(json.dumps({'id':'f'*32,'body':'Please show how to compare unit prices?','not_before':start.isoformat(),'expires':(start+datetime.timedelta(days=2)).isoformat()}))
+   early=Candidates();include_approved_synthetic(early,tmp,start-datetime.timedelta(seconds=1));self.assertEqual(len(early),0)
+   active=Candidates();include_approved_synthetic(active,tmp,start);self.assertEqual(len(active),1)
+   calls=[]
+   with sqlite3.connect(':memory:') as db:run(db,'dummy',active,lambda path,token,payload=None:calls.append(payload))
+   self.assertEqual(calls[0]['inputs']['request_origin'],'synthetic')
+   self.assertNotIn('Please show',json.dumps(calls))
+   late=Candidates();include_approved_synthetic(late,tmp,start+datetime.timedelta(days=2));self.assertEqual(len(late),0)
+ def test_unapproved_manifest_fails_closed(self):
+  import tempfile
+  from pathlib import Path
+  from request_dispatch import Candidates,include_approved_synthetic
+  with tempfile.TemporaryDirectory() as tmp:
+   (Path(tmp)/'approved-synthetic-test.json').write_text(json.dumps({'id':'f'*32,'body':'Fake other suggestion'}))
+   with self.assertRaises(ValueError):include_approved_synthetic(Candidates(),tmp)

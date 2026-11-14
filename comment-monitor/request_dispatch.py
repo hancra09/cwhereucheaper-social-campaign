@@ -91,6 +91,25 @@ def read_candidates(paths=SOURCES, product_catalog=None, comparison_catalog=None
     return out
 
 
+def include_approved_synthetic(candidates,state,now=None):
+    """Append one explicitly labelled, bounded test only after its approved start."""
+    path=Path(state)/'approved-synthetic-test.json'
+    if not path.exists():return
+    data=json.loads(path.read_text())
+    ident=data.get('id',''); body=data.get('body','')
+    if not re.fullmatch(r'[a-f0-9]{32}',ident) or body!='Please show how to compare unit prices?':
+        raise ValueError('Invalid synthetic test manifest')
+    start=dt.datetime.fromisoformat(data['not_before']);end=dt.datetime.fromisoformat(data['expires'])
+    now=now or dt.datetime.now(dt.timezone.utc)
+    if start.tzinfo is None or end.tzinfo is None or not start<end or end-start>dt.timedelta(days=3):
+        raise ValueError('Invalid synthetic test period')
+    if not start<=now<end:return
+    topic=select(body)
+    if topic!='unit_price_v1':raise ValueError('Synthetic request classification failed')
+    candidates.available.add('synthetic')
+    candidates.append(('synthetic',ident,hashlib.sha256(body.encode()).hexdigest(),topic,''))
+
+
 def api(path,token,payload=None):
     request=urllib.request.Request(API+path, data=json.dumps(payload).encode() if payload is not None else None,
         headers={**({} if path.startswith('releases/tags/') else {'Authorization':'Bearer '+token}), 'Accept':'application/vnd.github+json',
@@ -171,7 +190,8 @@ def run(db, token, candidates, call=api):
     db.execute("UPDATE requests SET state='dispatching',attempted_at=?,attempt=? WHERE request_id=?",(stamp,attempt,rid)); db.commit()
     call('actions/workflows/campaign.yml/dispatches',token,{'ref':'main','inputs':{
         'mode':'viewer-response','dispatch_id':'viewer-'+rid+'-'+str(attempt),
-        'request_topic':topic,'request_subject':subject,'request_id':rid}})
+        'request_topic':topic,'request_subject':subject,'request_id':rid,
+        'request_origin':'synthetic' if source=='synthetic' else ''}})
     print('Supported viewer request dispatched for researched response.')
 
 
@@ -181,7 +201,9 @@ def main():
     if not token: raise ValueError('Missing credential')
     with sqlite3.connect(state/'requests.sqlite') as db:
         os.chmod(state/'requests.sqlite',0o600)
-        run(db,token,read_candidates())
+        candidates=read_candidates()
+        include_approved_synthetic(candidates,state)
+        run(db,token,candidates)
 
 if __name__=='__main__':
     try: main()

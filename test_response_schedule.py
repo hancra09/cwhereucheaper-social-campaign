@@ -55,7 +55,7 @@ class SyntheticPipelineTests(unittest.TestCase):
    calls.append((path,payload))
    if path.endswith('dispatches'):
     inputs=payload['inputs']
-    c.prepare_request(now,inputs['request_topic'],inputs['request_id'],inputs.get('request_subject',''))
+    c.prepare_request(now,inputs['request_topic'],inputs['request_id'],inputs.get('request_subject',''),inputs.get('request_origin',''))
    elif '/runs?' in path:
     return {'workflow_runs':[{'display_title':calls[0][1]['inputs']['dispatch_id'],'status':'completed'}]}
    elif path.startswith('releases/tags/'):
@@ -135,3 +135,20 @@ class ComparisonSchedulingTests(unittest.TestCase):
    self.assertTrue(c.prepare_request(now,'product_compare_v1','d'*32,'14535-30273'))
    self.assertTrue(c.prepare_request(now,'product_compare_v1','d'*32,'14535-30273'))
    self.assertEqual(run.call_count,1)
+
+class LabelledSyntheticScheduleTests(unittest.TestCase):
+ def test_synthetic_video_is_labelled_and_slots_preserved(self):
+  import creative_engine
+  now=dt.datetime.now(c.SAST);day=now.date()+dt.timedelta(days=1);releases={}
+  def load(tag):return releases.setdefault(tag,{'id':tag,'body':'{}','assets':[]})
+  def save(rel,ledger):rel['body']=json.dumps(ledger)
+  def fake_run(day,slot,*,now,request_item):
+   self.assertTrue(request_item['synthetic_test'])
+   self.assertIn('simulated viewer request',request_item['caption'])
+   self.assertTrue(creative_engine.lesson(request_item,'test')['synthetic_test'])
+   tag=day.strftime('%Y%m%d')+'-'+slot;rel=releases[tag];ledger=json.loads(rel['body'])
+   ledger.update({'state':'scheduled','posts':{s:{'status':'scheduled'} for s in c.CHANNELS}});save(rel,ledger)
+  with patch.object(c,'future_slots',return_value=[(day,'early')]),patch.object(c,'load_release',side_effect=load),patch.object(c,'read_release',side_effect=lambda tag:releases.get(tag)),patch.object(c,'save',side_effect=save),patch.object(c,'existing_posts',return_value=[]),patch.object(c,'render_budget',return_value=[]),patch.object(c,'run',side_effect=fake_run),patch('response.research',return_value={'url':'https://www.health.gov.za/wp-content/uploads/2020/11/tri-fold_pamphlet.pdf'}):
+   self.assertTrue(c.prepare_request(now,'unit_price_v1','e'*32,'','synthetic'))
+   self.assertEqual(json.loads(releases['viewer-request-'+'e'*32]['body'])['origin'],'synthetic')
+   with self.assertRaises(ValueError):c.prepare_request(now,'product_price_v1','d'*32,'23895','synthetic')

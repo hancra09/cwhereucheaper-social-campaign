@@ -595,7 +595,7 @@ def prepare_ahead(now):
 
 
 
-def prepare_request(now, topic, request_id, subject=""):
+def prepare_request(now, topic, request_id, subject="", origin=""):
     """Reserve only a vacant normal slot; keep existing queues untouched."""
     import re
     from response import research, build
@@ -603,9 +603,11 @@ def prepare_request(now, topic, request_id, subject=""):
         raise ValueError('Invalid request identifier')
     if not ((topic in ('delivery_total_v1','unit_price_v1','bulk_buying_v1','shopping_plan_v1') and not subject) or (topic=='product_price_v1' and re.fullmatch(r'[1-9][0-9]{0,9}',subject or '')) or (topic=='product_compare_v1' and re.fullmatch(r'[1-9][0-9]{0,9}-[1-9][0-9]{0,9}',subject or ''))):
         raise ValueError('Unsupported request or subject')
+    if origin not in ('','synthetic') or (origin=='synthetic' and (topic!='unit_price_v1' or subject)):
+        raise ValueError('Invalid synthetic test request')
     request_release = load_release('viewer-request-' + request_id)
     request_ledger = json.loads(request_release['body'] or '{}')
-    if request_ledger.get('topic') not in (None,topic) or request_ledger.get('subject') not in (None,subject):
+    if request_ledger.get('topic') not in (None,topic) or request_ledger.get('subject') not in (None,subject) or request_ledger.get('origin') not in (None,origin):
         raise ValueError('Request identifier reused')
     if request_ledger.get('state') == 'scheduled':
         return True
@@ -627,11 +629,14 @@ def prepare_request(now, topic, request_id, subject=""):
             from comparison_response import research as comparison_research, build as comparison_build
             item=comparison_build(comparison_research(subject))
         item['response_request_id'] = request_id
+        if origin=='synthetic':
+            item['synthetic_test']=True
+            item['caption']='TEST VIDEO: Based on a simulated viewer request. '+item['caption']
         for day, slot in future_slots(now):
             tag = day.strftime('%Y%m%d')+'-'+slot
             if any('utm_content='+tag+'\n' in p.get('text','') for p in posts) or read_release(tag):
                 continue
-            request_ledger.update({'topic':topic,'subject':subject,'slot':tag,'state':'reserving'})
+            request_ledger.update({'topic':topic,'subject':subject,'origin':origin,'slot':tag,'state':'reserving'})
             save(request_release,request_ledger)
             slot_release = load_release(tag)
             slot_ledger = json.loads(slot_release['body'] or '{}')
@@ -665,7 +670,7 @@ def prepare_request(now, topic, request_id, subject=""):
     confirmed = json.loads(read_release(selected)['body'] or '{}')
     if confirmed.get('state') != 'scheduled' or set(confirmed.get('posts',{})) != set(CHANNELS):
         raise RuntimeError('Response delivery not fully confirmed.')
-    request_ledger.update({'topic':topic,'subject':subject,'slot':selected,'state':'scheduled'})
+    request_ledger.update({'topic':topic,'subject':subject,'origin':origin,'slot':selected,'state':'scheduled'})
     save(request_release,request_ledger)
     print('Viewer response scheduled in campaign slot:',selected)
     return True
@@ -747,12 +752,13 @@ def main():
     p.add_argument('--request-topic', default='')
     p.add_argument('--request-id', default='')
     p.add_argument('--request-subject', default='')
+    p.add_argument('--request-origin', default='')
     args = p.parse_args()
     now = dt.datetime.now(SAST)
     check_access_expiry(now)
     ensure_plans(now.date())
     if args.mode == 'viewer-response':
-        prepare_request(now,args.request_topic,args.request_id,args.request_subject)
+        prepare_request(now,args.request_topic,args.request_id,args.request_subject,args.request_origin)
         return
     if args.mode == 'growth-test':
         apply_growth_test(now)

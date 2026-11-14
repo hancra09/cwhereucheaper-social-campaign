@@ -1,7 +1,7 @@
 """Conservative, deterministic first slice of viewer-request handling.
 
-Only a generic delivery-cost question is handled. Specific retailers, prices,
-products and other requests remain unhandled until independently researched.
+Only explicitly supported generic shopping questions are handled here.
+Named products and other requests require separate verified research.
 Never pass viewer text into a public script or executable instruction.
 """
 import re
@@ -37,7 +37,7 @@ def select(body):
     s = re.sub(r'\s+', ' ', body.lower()).strip()
     if re.search(r'https?://|@|#|\d|[<>`{}\[\]]', s):
         return None
-    vocabulary = set('a about add affect affects an and are as at basket baskets be before buy buying can changes check compare comparing cost costs could delivery difference do does fee fees for get how i in is it make me next of on online order orders please price prices see share show shopping should tell than the to video want we what when which why will with would you your cheaper cheapest expensive more less final total totals change unit units gram grams kilogram kilogramme kilograms kilo kilos per litre liter litres liters pack packs size sizes smaller bigger larger calculate calculating calculation work works out means mean explain math maths differences different'.split())
+    vocabulary = set('a about add affect affects an and are as at basket baskets be before buy buying can changes check compare comparing cost costs could delivery difference do does fee fees for get how i in is it make me next of on online order orders please price prices see share show shopping should tell than the to video want we what when which why will with would you your cheaper cheapest expensive more less final total totals change unit units gram grams kilogram kilogramme kilograms kilo kilos per litre liter litres liters pack packs size sizes smaller bigger larger calculate calculating calculation work works out means mean explain math maths differences different bulk expiry dates date store storing storage waste food use using amount amounts space cupboard list lists meal meals planning plan needs need save savings money household household'.split())
     words = re.findall(r"[a-z]+", s)
     if not words or any(word not in vocabulary for word in words):
         return None
@@ -49,12 +49,16 @@ def select(body):
         return 'unit_price_v1'
     if re.search(r'\bper\b',s) and re.search(r'\b(gram|grams|kilogram|kilograms|kilo|litre|litres|liter|liters)\b',s) and re.search(r'\b(compare|comparing|price|prices|cost|costs)\b',s):
         return 'unit_price_v1'
+    if re.search(r'\bbulk\b',s):
+        return 'bulk_buying_v1'
+    if re.search(r'\b(list|lists|meal|meals|planning|plan)\b',s) and re.search(r'\b(shopping|meal|meals|list|lists)\b',s):
+        return 'shopping_plan_v1'
     return None
 
 
 def research(fetch=None,topic='delivery_total_v1'):
     """Check a live authoritative source. Unit-price guide is pinned after review."""
-    if topic=='unit_price_v1':
+    if topic in ('unit_price_v1','bulk_buying_v1','shopping_plan_v1'):
         def get_pdf(url):
             req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 CWUC video research'})
             with urllib.request.urlopen(req,timeout=25) as response:
@@ -64,7 +68,7 @@ def research(fetch=None,topic='delivery_total_v1'):
         data=(fetch or get_pdf)(UNIT_SOURCE)
         if len(data)>2_000_000 or hashlib.sha256(data).hexdigest()!=UNIT_SOURCE_SHA256:
             raise ValueError('Unit-price source unavailable or changed')
-        return {'url':UNIT_SOURCE,'finding':'The South African health department recommends comparing unit prices.'}
+        return {'url':UNIT_SOURCE,'finding':'The South African health department offers budget shopping guidance.'}
     if topic!='delivery_total_v1':raise ValueError('Unsupported topic')
     def default(url):
         req=urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0 CWUC video research'})
@@ -83,6 +87,18 @@ def research(fetch=None,topic='delivery_total_v1'):
 
 
 def build(topic, evidence):
+    if topic=='bulk_buying_v1' and evidence.get('url')==UNIT_SOURCE:
+        return {'title':'Is bulk buying worth it?',
+          'script':('Bigger is not always a bargain. Compare the unit price and buy an amount you will use. '
+                    'Check storage space and the date label before buying more. Your fridge has opinions too.'),
+          'caption':'Compare the unit price, storage and date labels before a bulk purchase. Source: '+UNIT_SOURCE,
+          'style':'Educational','theme':'waste','growth_hashtags':'#BulkBuying #SmartShopping #SouthAfrica','creative_version':'creative-v2'}
+    if topic=='shopping_plan_v1' and evidence.get('url')==UNIT_SOURCE:
+        return {'title':'A shopping list that helps',
+          'script':('Before you shop, check what you already have at home. Plan your meals and write a shopping list. '
+                    'Compare the same quantities and keep extras separate. Your cupboard might surprise you.'),
+          'caption':'Check your cupboards, plan meals and take a list when you shop. Source: '+UNIT_SOURCE,
+          'style':'Educational','theme':'planning','growth_hashtags':'#ShoppingList #SmartShopping #SouthAfrica','creative_version':'creative-v2'}
     if topic=='unit_price_v1' and evidence.get('url')==UNIT_SOURCE:
         return {'title':'Price per hundred grams made simple',
           'script':('In this example, a 500 gram pack costs R30. A 600 gram pack costs R42. '

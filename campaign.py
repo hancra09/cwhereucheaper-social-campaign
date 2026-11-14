@@ -446,6 +446,13 @@ def run(day, slot, *, now, immediate=False, preflight=False, request_item=None):
     ledger['content'] = item
     ledger.update({'slot': tag, 'title': item['title'], 'due_sast': due.isoformat() if not immediate else now.isoformat(), 'posts': ledger.get('posts', {})})
     video = ledger.get('video') or generate(item, release, ledger)
+    if item.get('evidence_product_id'):
+        from product_response import research as product_research
+        fresh=product_research(item['evidence_product_id'])
+        checked=dt.datetime.fromisoformat(item['evidence_checked_sast'])
+        age=dt.datetime.now(dt.timezone.utc)-checked.astimezone(dt.timezone.utc)
+        if age>dt.timedelta(minutes=30) or age<dt.timedelta(minutes=-5) or any(fresh[k]!=item['evidence_'+k] for k in ('price','product','retailer','url')):
+            raise RuntimeError('Product evidence expired or changed; no new post created.')
     for service, channel in CHANNELS.items():
         text = caption(item, service, tag)
         matches = [p for p in posts if p['channelId'] == channel and p['text'] == text]
@@ -587,7 +594,7 @@ def prepare_request(now, topic, request_id, subject=""):
     from response import research, build
     if not re.fullmatch(r'[a-f0-9]{32}',request_id or ''):
         raise ValueError('Invalid request identifier')
-    if not ((topic in ('delivery_total_v1','unit_price_v1') and not subject) or (topic=='product_price_v1' and re.fullmatch(r'[1-9][0-9]{0,9}',subject or ''))):
+    if not ((topic in ('delivery_total_v1','unit_price_v1','bulk_buying_v1','shopping_plan_v1') and not subject) or (topic=='product_price_v1' and re.fullmatch(r'[1-9][0-9]{0,9}',subject or ''))):
         raise ValueError('Unsupported request or subject')
     request_release = load_release('viewer-request-' + request_id)
     request_ledger = json.loads(request_release['body'] or '{}')
@@ -604,7 +611,7 @@ def prepare_request(now, topic, request_id, subject=""):
         if len(render_budget(now)) >= DAILY_RENDER_LIMIT:
             print('Request deferred: daily render budget exhausted.')
             return False
-        if topic in ('delivery_total_v1','unit_price_v1'):
+        if topic in ('delivery_total_v1','unit_price_v1','bulk_buying_v1','shopping_plan_v1'):
             item=build(topic,research(topic=topic))
         else:
             from product_response import research as product_research, build as product_build
@@ -631,7 +638,7 @@ def prepare_request(now, topic, request_id, subject=""):
     day = dt.datetime.strptime(day_text,'%Y%m%d').date()
     if now > dt.datetime.combine(day,SLOTS[slot],SAST) - dt.timedelta(hours=MIN_LEAD_HOURS):
         raise RuntimeError('Reserved response slot too close; no post created.')
-    if topic in ('delivery_total_v1','unit_price_v1'):
+    if topic in ('delivery_total_v1','unit_price_v1','bulk_buying_v1','shopping_plan_v1'):
         research(topic=topic)  # Reconfirm source before scheduling.
     slot_release = read_release(selected)
     if not slot_release:
@@ -640,12 +647,10 @@ def prepare_request(now, topic, request_id, subject=""):
     if ledger.get('response_request_id') != request_id:
         raise RuntimeError('Response slot belongs to another request.')
     if topic=='product_price_v1':
-        from product_response import research as product_research
-        fresh=product_research(subject)
         checked=dt.datetime.fromisoformat(ledger['content']['evidence_checked_sast'])
         age=dt.datetime.now(dt.timezone.utc)-checked.astimezone(dt.timezone.utc)
-        if age>dt.timedelta(minutes=30) or age<dt.timedelta(minutes=-5) or 'R'+fresh['price'] not in ledger['content']['script']:
-            raise RuntimeError('Product evidence expired or changed; no post created.')
+        if age>dt.timedelta(minutes=30) or age<dt.timedelta(minutes=-5):
+            raise RuntimeError('Product evidence expired; no post created.')
     run(day,slot,now=now,request_item=ledger['content'])
     confirmed = json.loads(read_release(selected)['body'] or '{}')
     if confirmed.get('state') != 'scheduled' or set(confirmed.get('posts',{})) != set(CHANNELS):

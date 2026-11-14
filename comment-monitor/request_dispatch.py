@@ -24,6 +24,7 @@ class Candidates(list):
     def __init__(self):
         super().__init__()
         self.available=set()
+        self.unhandled=[]
 
 
 def load_catalog(path=CATALOG):
@@ -61,6 +62,8 @@ def read_candidates(paths=SOURCES, product_catalog=None):
                         if product_id: topic,subject='product_price_v1',product_id
                     if topic:
                         out.append((source,str(cid),hashlib.sha256(body.encode()).hexdigest(),topic,subject))
+                    elif isinstance(body,str) and ('?' in body or re.search(r'\b(please|could you|can you|make a video)\b',body,re.I)):
+                        out.unhandled.append((source,str(cid),hashlib.sha256(body.encode()).hexdigest()))
         except (OSError,sqlite3.Error,ValueError,TypeError):
             out.available.discard(source)
             print('Comment source unavailable:',source,file=sys.stderr)
@@ -85,6 +88,13 @@ def run(db, token, candidates, call=api):
          PRIMARY KEY(source,comment_id,body_sha))''')
     if 'subject' not in {r[1] for r in db.execute('PRAGMA table_info(requests)')}:
         db.execute("ALTER TABLE requests ADD COLUMN subject TEXT NOT NULL DEFAULT ''")
+    db.execute('''CREATE TABLE IF NOT EXISTS unhandled
+        (source TEXT NOT NULL, comment_id TEXT NOT NULL, body_sha TEXT NOT NULL,
+         first_seen TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,last_seen TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+         PRIMARY KEY(source,comment_id,body_sha))''')
+    for source,cid,digest in getattr(candidates,'unhandled',[]):
+        db.execute('''INSERT INTO unhandled(source,comment_id,body_sha) VALUES(?,?,?)
+            ON CONFLICT(source,comment_id,body_sha) DO UPDATE SET last_seen=CURRENT_TIMESTAMP''',(source,cid,digest))
     for source,cid,digest,topic,subject in candidates:
         recent=db.execute("SELECT 1 FROM requests WHERE topic=? AND subject=? AND state IN ('pending','dispatching','scheduled') AND datetime(created_at) >= datetime('now','-7 days') LIMIT 1",(topic,subject)).fetchone()
         if recent:
@@ -94,7 +104,7 @@ def run(db, token, candidates, call=api):
     db.commit()
     pending=db.execute("SELECT source,comment_id,body_sha,topic,subject,request_id,state,attempted_at,attempt FROM requests WHERE state IN ('pending','dispatching') ORDER BY rowid LIMIT 1").fetchone()
     if not pending:
-        print('No supported viewer requests pending.')
+        print('No supported viewer requests pending; unsupported questions observed:',len(getattr(candidates,'unhandled',[])))
         return
     source,cid,digest,topic,subject,rid,state,attempted,attempt=pending
     if state=='dispatching':

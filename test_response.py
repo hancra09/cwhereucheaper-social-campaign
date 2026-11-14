@@ -21,6 +21,12 @@ class ResponseTests(unittest.TestCase):
         self.assertIn('R6 per 100 grams',item['script'])
         self.assertIn('R7 per 100 grams',item['script'])
         with self.assertRaises(ValueError): r.research(lambda _: b'bad pdf',topic='unit_price_v1')
+    def test_more_synthetic_questions(self):
+        self.assertEqual(r.select('Please show how bulk buying can save money?'),'bulk_buying_v1')
+        self.assertEqual(r.select('Please show how to plan a shopping list?'),'shopping_plan_v1')
+        self.assertIn('storage',r.build('bulk_buying_v1',{'url':r.UNIT_SOURCE})['script'])
+        self.assertIn('list',r.build('shopping_plan_v1',{'url':r.UNIT_SOURCE})['script'])
+        self.assertIsNone(r.select('Please compare the price of Clover milk?'))
     def test_missing_evidence_stops(self):
         with self.assertRaises(ValueError): r.research(lambda _: b'<html>page unavailable</html>')
         with self.assertRaises(ValueError): r.build('delivery_total_v1',{})

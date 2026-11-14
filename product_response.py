@@ -125,4 +125,6 @@ def build(evidence):
       'script':f"On {date}, the {retailer} product page listed {product} at R{price}. That is the item price before delivery or other charges. Prices and availability can change, so check the retailer page before you buy.",
       'caption':f"Price check at {time} SAST on {date}: {retailer} displayed {product} at R{price}. Item price only; delivery and availability may change. Verify before buying: {evidence['url']}",
       'style':'Educational','theme':'shopping-check','growth_hashtags':'#PriceCheck #SmartShopping #SouthAfrica',
-      'creative_version':'creative-v2','evidence_checked_sast':evidence['checked_sast']}
+      'creative_version':'creative-v2','evidence_checked_sast':evidence['checked_sast'],
+      'evidence_product_id':evidence['product_id'],'evidence_price':price,
+      'evidence_product':product,'evidence_retailer':retailer,'evidence_url':evidence['url']}

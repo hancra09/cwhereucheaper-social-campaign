@@ -66,3 +66,29 @@ class ProductIntakeTests(unittest.TestCase):
     run(state,'dummy',rows,lambda path,token,payload=None:sent.append(payload))
    self.assertEqual(sent[0]['inputs']['request_subject'],'23895')
    self.assertNotIn(body,json.dumps(sent));self.assertNotIn('fake-comment',json.dumps(sent))
+
+class UnhandledTests(unittest.TestCase):
+ def test_unsupported_question_recorded_privately(self):
+  import tempfile
+  from pathlib import Path
+  from request_dispatch import read_candidates
+  question='Where is Clover milk cheapest?'
+  with tempfile.TemporaryDirectory() as tmp:
+   p=Path(tmp)/'c.sqlite'
+   with sqlite3.connect(p) as db:
+    db.execute('CREATE TABLE polls(id INTEGER,checked TEXT)');db.execute('INSERT INTO polls VALUES(1,CURRENT_TIMESTAMP)')
+    db.execute('CREATE TABLE comments(id TEXT,body TEXT,owner INTEGER)');db.execute('INSERT INTO comments VALUES(?,?,0)',('q',question))
+   candidates=read_candidates({'facebook':p},[])
+   self.assertEqual(len(candidates),0);self.assertEqual(len(candidates.unhandled),1)
+   with sqlite3.connect(':memory:') as state:
+    run(state,'dummy',candidates,lambda *args: self.fail('must not dispatch'))
+    saved=state.execute('SELECT source,comment_id,body_sha FROM unhandled').fetchall()
+    self.assertEqual(len(saved),1);self.assertNotIn(question,repr(saved))
+
+class MigrationTests(unittest.TestCase):
+ def test_existing_live_selector_state_is_preserved(self):
+  with sqlite3.connect(':memory:') as db:
+   db.execute('''CREATE TABLE requests(source TEXT,comment_id TEXT,body_sha TEXT,topic TEXT,request_id TEXT,state TEXT,attempted_at TEXT,attempt INTEGER DEFAULT 0,created_at TEXT DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(source,comment_id,body_sha))''')
+   db.execute("INSERT INTO requests(source,comment_id,body_sha,topic,request_id,state) VALUES('facebook','x','h','delivery_total_v1','a','scheduled')")
+   run(db,'dummy',[],lambda *args:self.fail('must not dispatch'))
+   self.assertEqual(db.execute('select topic,subject,state from requests').fetchone(),('delivery_total_v1','','scheduled'))

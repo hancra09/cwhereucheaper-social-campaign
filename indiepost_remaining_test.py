@@ -8,8 +8,11 @@ TAG='indiepost-delivery-video-20261114'
 release=campaign.read_release(TAG)
 if not release:raise RuntimeError('Test release is missing')
 state=json.loads(release['body'])
-if not state.get('test_started') or any(p in state.get('platforms',{}) for p in ('tiktok','facebook')):
+if not state.get('test_started') or 'facebook' in state.get('platforms',{}):
     raise RuntimeError('Unexpected prior state; do not repeat')
+existing=state['platforms'].get('tiktok',{}).get('indiepost_fallback',{}).get('tiktok',{})
+if existing.get('phase') in ('sending','submitted','confirmed'):
+    raise RuntimeError('TikTok submission already attempted')
 state['platforms']['youtube']['provider_status']={'status':'blocked_capacity'}
 def save_state():
     campaign.gh('releases/'+str(release['id']), {'body':json.dumps(state,sort_keys=True)}, 'PATCH')
@@ -29,6 +32,7 @@ for service in ('tiktok','facebook'):
     row={'id':'simulated-'+service,'channelId':channel,'status':'error','error':{'message':message},'externalLink':'','text':caption}
     ledger={'slot':TAG,'due_sast':(now-dt.timedelta(minutes=21)).isoformat(),'posts':{service:{'id':row['id'],'text':caption}},'content':item,'video':video}
     state['platforms'][service]=ledger
+    ledger['indiepost_fallback']={service:{'phase':'media_ready','media_id':state['platforms']['youtube']['indiepost_fallback']['youtube']['media_id']}}
     save_state()
     def save(_):save_state()
     result=recover(ledger,service,channel,lambda:[row],save,now)

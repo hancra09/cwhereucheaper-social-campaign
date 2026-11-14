@@ -453,6 +453,13 @@ def run(day, slot, *, now, immediate=False, preflight=False, request_item=None):
         age=dt.datetime.now(dt.timezone.utc)-checked.astimezone(dt.timezone.utc)
         if age>dt.timedelta(minutes=30) or age<dt.timedelta(minutes=-5) or any(fresh[k]!=item['evidence_'+k] for k in ('price','product','retailer','url')):
             raise RuntimeError('Product evidence expired or changed; no new post created.')
+    if item.get('evidence_comparison_subject'):
+        from comparison_response import research as comparison_research
+        fresh=comparison_research(item['evidence_comparison_subject'])
+        checked=dt.datetime.fromisoformat(item['evidence_checked_sast'])
+        age=dt.datetime.now(dt.timezone.utc)-checked.astimezone(dt.timezone.utc)
+        if age>dt.timedelta(minutes=30) or age<dt.timedelta(minutes=-5) or fresh['signature']!=item['evidence_comparison_signature']:
+            raise RuntimeError('Comparison evidence expired or changed; no new post created.')
     for service, channel in CHANNELS.items():
         text = caption(item, service, tag)
         matches = [p for p in posts if p['channelId'] == channel and p['text'] == text]
@@ -594,7 +601,7 @@ def prepare_request(now, topic, request_id, subject=""):
     from response import research, build
     if not re.fullmatch(r'[a-f0-9]{32}',request_id or ''):
         raise ValueError('Invalid request identifier')
-    if not ((topic in ('delivery_total_v1','unit_price_v1','bulk_buying_v1','shopping_plan_v1') and not subject) or (topic=='product_price_v1' and re.fullmatch(r'[1-9][0-9]{0,9}',subject or ''))):
+    if not ((topic in ('delivery_total_v1','unit_price_v1','bulk_buying_v1','shopping_plan_v1') and not subject) or (topic=='product_price_v1' and re.fullmatch(r'[1-9][0-9]{0,9}',subject or '')) or (topic=='product_compare_v1' and re.fullmatch(r'[1-9][0-9]{0,9}-[1-9][0-9]{0,9}',subject or ''))):
         raise ValueError('Unsupported request or subject')
     request_release = load_release('viewer-request-' + request_id)
     request_ledger = json.loads(request_release['body'] or '{}')
@@ -613,9 +620,12 @@ def prepare_request(now, topic, request_id, subject=""):
             return False
         if topic in ('delivery_total_v1','unit_price_v1','bulk_buying_v1','shopping_plan_v1'):
             item=build(topic,research(topic=topic))
-        else:
+        elif topic=='product_price_v1':
             from product_response import research as product_research, build as product_build
             item=product_build(product_research(subject))
+        else:
+            from comparison_response import research as comparison_research, build as comparison_build
+            item=comparison_build(comparison_research(subject))
         item['response_request_id'] = request_id
         for day, slot in future_slots(now):
             tag = day.strftime('%Y%m%d')+'-'+slot
@@ -646,7 +656,7 @@ def prepare_request(now, topic, request_id, subject=""):
     ledger = json.loads(slot_release['body'] or '{}')
     if ledger.get('response_request_id') != request_id:
         raise RuntimeError('Response slot belongs to another request.')
-    if topic=='product_price_v1':
+    if topic in ('product_price_v1','product_compare_v1'):
         checked=dt.datetime.fromisoformat(ledger['content']['evidence_checked_sast'])
         age=dt.datetime.now(dt.timezone.utc)-checked.astimezone(dt.timezone.utc)
         if age>dt.timedelta(minutes=30) or age<dt.timedelta(minutes=-5):

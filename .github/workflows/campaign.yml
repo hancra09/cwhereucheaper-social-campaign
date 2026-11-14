@@ -68,7 +68,7 @@ jobs:
           path: ~/.cache/cwuc-voice-assets
           key: cwuc-kokoro-model-files-v1.1-${{ runner.os }}-${{ runner.arch }}
       - name: Check campaign safety guards
-        run: python3 -m unittest -q test_campaign.py test_creative.py test_response.py test_product_response.py test_response_schedule.py > safety-fixture-output.log
+        run: python3 -m unittest -q test_campaign.py test_creative.py test_response.py test_product_response.py test_comparison_response.py test_response_schedule.py > safety-fixture-output.log
       - name: Install video validation tools
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Run bounded cloud workflow

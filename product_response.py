@@ -9,7 +9,7 @@ import urllib.request
 from html.parser import HTMLParser
 
 ORIGIN='https://www.cwhereucheaper.co.za'
-HOSTS={'superbhyper.co.za':('superbhyper','Superb Hyper'),'mopani.co.za':('mopani','Mopani')}
+HOSTS={'superbhyper.co.za':('superbhyper','Superb Hyper'),'mopani.co.za':('mopani','Mopani'),'animalsfirst.co.za':('animalsfirst','Animals First'),'turfhyper.co.za':('turfhyper','Turf Pet Hyper')}
 SAST=dt.timezone(dt.timedelta(hours=2))
 
 
@@ -50,12 +50,44 @@ def match_request(body, catalog):
 
 
 class Meta(HTMLParser):
-    def __init__(self):super().__init__();self.values={}
+    def __init__(self):super().__init__();self.values={};self.scripts=[];self.script=None
     def handle_starttag(self,tag,attrs):
+        attrs=dict(attrs)
+        if tag.lower()=='script' and attrs.get('type','').lower()=='application/ld+json':
+            self.script=[];return
         if tag.lower()!='meta':return
-        attrs=dict(attrs); key=(attrs.get('property') or attrs.get('name') or '').lower()
+        key=(attrs.get('property') or attrs.get('name') or '').lower()
         if key in ('og:title','product:price:amount','product:price:currency'):
             self.values.setdefault(key,[]).append(attrs.get('content',''))
+    def handle_data(self,data):
+        if self.script is not None:self.script.append(data)
+    def handle_endtag(self,tag):
+        if tag.lower()=='script' and self.script is not None:
+            self.scripts.append(''.join(self.script));self.script=None
+
+
+def structured_price(page,url,product):
+    target=urllib.parse.urlsplit(url)
+    found=[]
+    for raw in page.scripts:
+        try: data=json.loads(raw)
+        except (ValueError,TypeError): continue
+        graph=data.get('@graph',[data]) if isinstance(data,dict) else data
+        if not isinstance(graph,list):continue
+        for node in graph:
+            if not isinstance(node,dict) or node.get('@type')!='Product' or normalize(str(node.get('name','')))!=normalize(product):continue
+            ident=urllib.parse.urlsplit(str(node.get('@id','')))
+            if ident.hostname!=target.hostname or ident.path.rstrip('/')!=target.path.rstrip('/'):continue
+            offers=node.get('offers',[]);offers=offers if isinstance(offers,list) else [offers]
+            for offer in offers:
+                if not isinstance(offer,dict):continue
+                dest=urllib.parse.urlsplit(str(offer.get('url','')))
+                if dest.hostname!=target.hostname or dest.path.rstrip('/')!=target.path.rstrip('/'):continue
+                if str(offer.get('priceCurrency','')).upper()!='ZAR' or not str(offer.get('availability','')).endswith('/InStock'):continue
+                try: found.append(decimal.Decimal(str(offer['price'])))
+                except (KeyError,decimal.InvalidOperation):continue
+    if len(set(found))!=1:raise ValueError('Missing or ambiguous product offer')
+    return found[0]
 
 
 class SafeRedirect(urllib.request.HTTPRedirectHandler):
@@ -106,8 +138,12 @@ def research(product_id, fetch=None, now=None):
         v=vals.get(key,[])
         if len(set(v))!=1:raise ValueError('Missing or ambiguous product metadata')
         return v[0]
-    if one('product:price:currency').upper()!='ZAR' or decimal.Decimal(one('product:price:amount'))!=price:
-        raise ValueError('Retailer price not confirmed')
+    if host in ('animalsfirst.co.za','turfhyper.co.za'):
+        actual_price=structured_price(p,item['url'],item.get('product',''))
+    else:
+        if one('product:price:currency').upper()!='ZAR':raise ValueError('Unexpected currency')
+        actual_price=decimal.Decimal(one('product:price:amount'))
+    if actual_price!=price:raise ValueError('Retailer price not confirmed')
     title=normalize(one('og:title')); product=normalize(item.get('product',''))
     if not product or not (title==product or title.startswith(product+' ')):
         raise ValueError('Retailer product title not confirmed')

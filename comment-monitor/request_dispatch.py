@@ -13,6 +13,7 @@ import uuid
 from pathlib import Path
 from response import select
 from product_response import match_request
+from comparison_response import match_request as match_comparison
 
 REPO='hancra09/cwhereucheaper-social-campaign'
 API='https://api.github.com/repos/'+REPO+'/'
@@ -30,13 +31,27 @@ class Candidates(list):
 def load_catalog(path=CATALOG):
     with closing(sqlite3.connect('file:'+str(path)+'?mode=ro',uri=True,timeout=10)) as db:
         return list(db.execute("""SELECT p.id,p.name FROM products p JOIN retailers r ON r.id=p.retailer_id
-                  WHERE p.is_active=1 AND lower(r.base_url) IN ('https://superbhyper.co.za','https://superbhyper.co.za/','https://mopani.co.za','https://mopani.co.za/')"""))
+                  WHERE p.is_active=1 AND lower(r.base_url) IN ('https://superbhyper.co.za','https://superbhyper.co.za/','https://mopani.co.za','https://mopani.co.za/','https://animalsfirst.co.za','https://animalsfirst.co.za/','https://turfhyper.co.za','https://turfhyper.co.za/')"""))
 
 
-def read_candidates(paths=SOURCES, product_catalog=None):
+def load_comparisons(path=CATALOG):
+    with closing(sqlite3.connect('file:'+str(path)+'?mode=ro',uri=True,timeout=10)) as db:
+        return list(db.execute("""SELECT DISTINCT a.id,a.name,b.id,b.name
+          FROM product_identities ia JOIN products a ON a.id=ia.product_id
+          JOIN retailers ra ON ra.id=a.retailer_id
+          JOIN product_identities ib ON ib.identity_type=ia.identity_type AND ib.normalized_value=ia.normalized_value
+          JOIN products b ON b.id=ib.product_id JOIN retailers rb ON rb.id=b.retailer_id
+          WHERE ia.identity_type='grocery_equivalence_key' AND ia.is_active=1 AND ib.is_active=1
+            AND ia.confidence='HIGH' AND ib.confidence='HIGH' AND a.is_active=1 AND b.is_active=1
+            AND lower(ra.base_url) IN ('https://animalsfirst.co.za','https://animalsfirst.co.za/')
+            AND lower(rb.base_url) IN ('https://turfhyper.co.za','https://turfhyper.co.za/')"""))
+
+
+def read_candidates(paths=SOURCES, product_catalog=None, comparison_catalog=None):
     """No text is logged. Require recent successful polls and a known non-owner."""
     out=Candidates()
     catalog=product_catalog
+    pairs=comparison_catalog
     for source,path in paths.items():
         try:
             with closing(sqlite3.connect('file:'+str(path)+'?mode=ro',uri=True,timeout=10)) as db:
@@ -54,6 +69,12 @@ def read_candidates(paths=SOURCES, product_catalog=None):
                 for cid,body in db.execute('SELECT id,body FROM comments WHERE owner=0'):
                     topic=select(body)
                     subject=''
+                    if not topic and isinstance(body,str) and re.search(r'animals\s*first',body,re.I) and re.search(r'turf\s*(?:pet\s*)?hyper',body,re.I):
+                        if pairs is None:
+                            try:pairs=load_comparisons()
+                            except (OSError,sqlite3.Error):pairs=[]
+                        pair=match_comparison(body,pairs)
+                        if pair:topic,subject='product_compare_v1',pair
                     if not topic and isinstance(body,str) and re.search(r'\b(price|cost|costs|priced|much)\b',body,re.I):
                         if catalog is None:
                             try: catalog=load_catalog()

@@ -110,3 +110,21 @@ class WithdrawalTests(unittest.TestCase):
     self.fail('withdrawn request must not dispatch')
    run(db,'dummy',fresh,api)
    self.assertEqual(db.execute('SELECT state FROM requests').fetchone()[0],'withdrawn')
+
+class ComparisonIntakeTests(unittest.TestCase):
+ def test_comparison_request_sends_only_public_product_ids(self):
+  import tempfile
+  from pathlib import Path
+  from request_dispatch import read_candidates
+  body='Please compare 20kg Ideal Adult Dog Food at Animals First and Turf Hyper?'
+  with tempfile.TemporaryDirectory() as tmp:
+   p=Path(tmp)/'comments.sqlite'
+   with sqlite3.connect(p) as db:
+    db.execute('CREATE TABLE polls(id INTEGER,checked TEXT)');db.execute('INSERT INTO polls VALUES(1,CURRENT_TIMESTAMP)')
+    db.execute('CREATE TABLE comments(id TEXT,body TEXT,owner INTEGER)');db.execute('INSERT INTO comments VALUES(?,?,0)',('fake-comparison',body))
+   rows=read_candidates({'facebook':p},[],[(14535,'20kg Ideal Adult Dog Food',30273,'IDEAL ADULT DOG FOOD 20KG')])
+   self.assertEqual(rows[0][3:],('product_compare_v1','14535-30273'))
+   sent=[]
+   with sqlite3.connect(':memory:') as db:run(db,'dummy',rows,lambda path,token,payload=None:sent.append(payload))
+   self.assertEqual(sent[0]['inputs']['request_subject'],'14535-30273')
+   self.assertNotIn(body,json.dumps(sent));self.assertNotIn('fake-comparison',json.dumps(sent))

@@ -104,3 +104,17 @@ class PriceFreshnessTests(unittest.TestCase):
   with patch.object(c,'buffer',return_value={'channels':channels}) as api,patch.object(c,'existing_posts',return_value=[]),patch.object(c,'load_release',return_value=release),patch.object(c,'generate',return_value='https://example.com/video.mp4'),patch('product_response.research',return_value=dict(e,price='10.99')):
    with self.assertRaisesRegex(RuntimeError,'expired or changed'):c.run(day,'early',now=now,request_item=item)
    self.assertEqual(api.call_count,1)
+
+class ComparisonGuardTests(unittest.TestCase):
+ def test_changed_comparison_does_not_send_to_buffer(self):
+  from comparison_response import build,signature
+  now=dt.datetime.now(c.SAST);day=now.date()+dt.timedelta(days=1)
+  one={'product_id':'14535','product':'20kg Ideal Adult Dog Food','retailer':'Animals First','price':'540.00','url':'https://animalsfirst.co.za/product/a/','checked_sast':now.isoformat()}
+  two={'product_id':'30273','product':'IDEAL ADULT DOG FOOD 20KG','retailer':'Turf Pet Hyper','price':'450.00','url':'https://turfhyper.co.za/product/a/','checked_sast':now.isoformat()}
+  e={'items':[one,two],'subject':'14535-30273','checked_sast':now.isoformat(),'signature':signature([one,two])}
+  item=build(e);item['response_request_id']='d'*32
+  release={'id':1,'body':json.dumps({'content':item}),'assets':[]}
+  channels=[{'service':s,'id':v,'serviceId':c.FACEBOOK_PAGE_ID if s=='facebook' else 'other'} for s,v in c.CHANNELS.items()]
+  with patch.object(c,'buffer',return_value={'channels':channels}) as api,patch.object(c,'existing_posts',return_value=[]),patch.object(c,'load_release',return_value=release),patch.object(c,'generate',return_value='https://example.com/video.mp4'),patch('comparison_response.research',return_value=dict(e,signature='changed')):
+   with self.assertRaisesRegex(RuntimeError,'expired or changed'):c.run(day,'early',now=now,request_item=item)
+   self.assertEqual(api.call_count,1)

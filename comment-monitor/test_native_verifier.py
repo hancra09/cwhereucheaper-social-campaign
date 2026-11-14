@@ -45,3 +45,14 @@ class NativeVerifierTests(unittest.TestCase):
    with sqlite3.connect(p) as db:self.assertEqual(db.execute('select youtube,tiktok,facebook from checks').fetchone(),('public_confirmed','unknown','pending'))
    self.assertEqual(p.stat().st_mode & 0o777,0o600)
 if __name__=='__main__':unittest.main()
+
+class ReleasePaginationTests(unittest.TestCase):
+ def test_old_first_page_does_not_hide_a_newer_verification_release(self):
+  old={'tag_name':'old','published_at':'2026-10-01T00:00:00Z'}
+  recent={'tag_name':'response-native-20261114-am','published_at':'2026-11-14T11:00:00Z','body':json.dumps(RECORD)}
+  calls=[]
+  def fetch(url,headers):
+   calls.append(url)
+   return [old]*100 if url.endswith('&page=1') else [recent]
+  rows=v.records(fetch,NOW)
+  self.assertEqual(len(calls),2);self.assertEqual(rows[0]['slot'],'20261114-am')

@@ -26,16 +26,16 @@ def get_json(url,headers=None):
 
 def records(fetch=get_json,now=None):
     now=now or dt.datetime.now(dt.timezone.utc);cutoff=now-dt.timedelta(days=8);out=[]
-    for page in range(1,5):
+    for page in range(1,11):
         data=fetch(GITHUB+'?per_page=100&page='+str(page),{'Accept':'application/vnd.github+json'})
         if not isinstance(data,list):raise ValueError('Invalid release list')
         for release in data:
             if str(release.get('tag_name','')).startswith('response-native-'):
-                body=json.loads(release.get('body') or '{}')
-                out.append(body)
+                published=dt.datetime.fromisoformat(release['published_at'].replace('Z','+00:00'))
+                if published>=cutoff:
+                    body=json.loads(release.get('body') or '{}')
+                    out.append(body)
         if len(data)<100:return out
-        dates=[dt.datetime.fromisoformat(x['created_at'].replace('Z','+00:00')) for x in data]
-        if min(dates)<cutoff:return out
     raise RuntimeError('Incomplete release inventory')
 
 

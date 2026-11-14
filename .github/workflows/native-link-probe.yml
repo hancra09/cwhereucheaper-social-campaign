@@ -1,0 +1,24 @@
+name: Read-only publication link capability check
+on:
+  push:
+    branches: [buffer-native-link-probe-20261114]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Count returned publication links without printing them
+        run: |
+          python3 - <<'PY'
+          import campaign
+          posts=campaign.existing_posts()
+          for service,channel in campaign.CHANNELS.items():
+              sent=[p for p in posts if p.get('channelId')==channel and p.get('status')=='sent']
+              linked=[p for p in sent if p.get('externalLink')]
+              print(service, 'sent records',len(sent),'with external link',len(linked))
+          PY

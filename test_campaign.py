@@ -14,6 +14,48 @@ class CampaignSafety(unittest.TestCase):
         self.now = dt.datetime(2026,11,8,11,23,tzinfo=c.SAST)
         self.release = {'id':1,'body':'{}','assets':[]}
 
+    def test_growth_tags_are_opt_in_and_keep_tracking(self):
+        item={'title':'Quiz','caption':'Illustrative example', 'creative_version':'creative-v2', 'growth_hashtags':'#UnitPrice #SouthAfrica'}
+        text=c.caption(item,'youtube','20261115-early')
+        self.assertIn('#UnitPrice #SouthAfrica #Shorts',text)
+        self.assertIn('utm_content=20261115-early',text)
+        self.assertIn('AI narration and illustrative AI product visuals.',text)
+
+    def test_growth_test_stops_on_channel_identity_before_mutation(self):
+        with patch.object(c,'buffer',return_value={'channels':[]}) as api, patch.object(c,'save') as save:
+            with self.assertRaisesRegex(AssertionError,'identity'):
+                c.apply_growth_test(self.now)
+            self.assertEqual(api.call_count,1)
+            save.assert_not_called()
+
+    def test_growth_test_replaces_six_posts_preserving_schedule_and_backups(self):
+        from types import SimpleNamespace
+        now=dt.datetime(2026,11,14,10,tzinfo=c.SAST)
+        releases={}; posts=[]; saved={}
+        for tag, due in [('20261115-early','2026-11-15T06:00:00Z'),('20261115-am','2026-11-15T10:30:00Z')]:
+            group={}
+            for service,channel in c.CHANNELS.items():
+                post={'id':tag+service,'channelId':channel,'status':'scheduled','dueAt':due,'text':'old','assets':[{'source':'old-url'}]}
+                group[service]=post.copy(); posts.append(post.copy())
+            ledger={'content':{'title':'old'},'posts':group,'video':'old-video'}
+            releases[tag]={'id':tag,'body':json.dumps(ledger)}
+        def api(query, variables=None):
+            if 'channels(input' in query: return {'channels':self.channels}
+            inp=variables['input']; before=next(p for p in posts if p['id']==inp['id'])
+            after={**before,'text':inp['text'],'assets':[{'source':inp['assets'][0]['video']['url']}]}
+            return {'editPost':{'post':after}}
+        def save(release,ledger): saved[release['id']]=json.loads(json.dumps(ledger))
+        def sha(data):
+            return SimpleNamespace(hexdigest=lambda: '79a7468cc1204996ef1de8d70c6c1018401e005408821d2f17bae59efe0e5262' if data.endswith(b'quiz') else '0e16deb09b9d77b833f25b080bc2b3ce4d5f756868b81526a2f831e07072c4e5')
+        with patch.object(c,'buffer',side_effect=api), patch.object(c,'existing_posts',return_value=posts), patch.object(c,'read_release',side_effect=lambda tag: releases[tag]), patch.object(c,'save',side_effect=save), patch.object(c,'request',side_effect=lambda url: b'1234ftyp'+(b'quiz' if url.endswith('quiz.mp4') else b'delivery')), patch('hashlib.sha256',side_effect=sha):
+            c.apply_growth_test(now)
+        self.assertEqual(len(saved),2)
+        for ledger in saved.values():
+            self.assertNotIn('growth_test_pending',ledger)
+            self.assertEqual(ledger['growth_original']['content']['title'],'old')
+            self.assertTrue(all(p['text']=='old' for p in ledger['growth_original']['posts'].values()))
+            self.assertTrue(all(p['status']=='scheduled' and p['text']!='old' for p in ledger['posts'].values()))
+
     def test_outside_date_and_late_slot_never_calls_services(self):
         with patch.object(c,'buffer') as api:
             with self.assertRaises(AssertionError):

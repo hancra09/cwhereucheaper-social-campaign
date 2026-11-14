@@ -19,7 +19,7 @@ on:
         description: Campaign action
         type: choice
         default: preflight
-        options: [preflight, bootstrap, smoke, audit, scheduled, prepare, review, prime, refresh-media, upgrade-creative]
+        options: [preflight, bootstrap, smoke, audit, scheduled, prepare, review, prime, refresh-media, upgrade-creative, growth-test]
 
 permissions:
   contents: write

@@ -338,6 +338,62 @@ def upgrade_creative(now):
     print(json.dumps({'creative_version':'creative-v2','updated_posts':changed},indent=2))
 
 
+
+def apply_growth_test(now):
+    """One approved controlled test; preserve post identities and recovery evidence."""
+    import hashlib
+    media = 'https://raw.githubusercontent.com/hancra09/cwhereucheaper-social-campaign/refs/heads/growth-test-media-20261114/'
+    tests = [
+      ('20261115-early', 'quiz.mp4', '79a7468cc1204996ef1de8d70c6c1018401e005408821d2f17bae59efe0e5262',
+       'Which pack is cheaper per 100g?', 'Illustrative example: R30 for 500g is R6 per 100g; R42 for 600g is R7 per 100g. Did you pick the bigger pack?', '#UnitPrice #ShoppingTips #SouthAfrica #CwhereUcheaper'),
+      ('20261115-am', 'delivery.mp4', '0e16deb09b9d77b833f25b080bc2b3ce4d5f756868b81526a2f831e07072c4e5',
+       'The delivery-fee plot twist', 'Illustrative example: R200 plus R60 delivery is R260; R230 with free delivery is R230. Compare the delivered total. Has this caught you out?', '#DeliveryFees #OnlineShopping #ShoppingTips #SouthAfrica'),
+    ]
+    channels=buffer('query($id:OrganizationId!){channels(input:{organizationId:$id}){id name service serviceId}}', {'id':ORG})['channels']
+    assert {c['service']:c['id'] for c in channels} == CHANNELS, 'Connected channel identity changed'
+    assert next(c['serviceId'] for c in channels if c['service']=='facebook') == FACEBOOK_PAGE_ID, 'Facebook Page identity changed'
+    posts=existing_posts(now=now)
+    prepared=[]
+    for tag, name, digest, title, body, hashtags in tests:
+        due=dt.datetime.combine(dt.datetime.strptime(tag[:8], '%Y%m%d').date(), SLOTS[tag.split('-')[1]], SAST)
+        if not now+dt.timedelta(hours=2) < due: raise RuntimeError('Insufficient lead time: '+tag)
+        data=request(media+name)
+        if data[4:8] != b'ftyp' or hashlib.sha256(data).hexdigest()!=digest: raise RuntimeError('Media verification failed: '+tag)
+        release=read_release(tag)
+        if not release: raise RuntimeError('Missing release: '+tag)
+        ledger=json.loads(release['body'] or '{}')
+        if ledger.get('growth_test_pending'): raise RuntimeError('Uncertain previous test edit; reconcile before retry: '+tag)
+        current={}
+        for service, channel in CHANNELS.items():
+            recorded=ledger.get('posts',{}).get(service,{}).get('id')
+            found=[p for p in posts if p['id']==recorded and p['channelId']==channel and p['status']=='scheduled']
+            if len(found)!=1 or found[0]['dueAt'] != ledger['posts'][service]['dueAt']:
+                raise RuntimeError('Exact scheduled post not verified: '+tag+'/'+service)
+            current[service]=found[0]
+        item={'title':title,'script':title,'caption':body,'style':'Playful','creative_version':'creative-v2','growth_hashtags':hashtags}
+        prepared.append((tag,media+name,digest,release,ledger,current,item))
+    for tag,url,digest,release,ledger,current,item in prepared:
+        ledger['growth_original']=json.loads(json.dumps({k:ledger.get(k) for k in ('content','title','posts','video','delivery_video','creative_video','creative_result')}))
+        ledger['growth_test_pending']={'url':url,'sha256':digest,'item':item,'completed':[]}
+        save(release,ledger)
+        for service,before in current.items():
+            expected=caption(item,service,tag)
+            result=buffer('mutation($input:EditPostInput!){editPost(input:$input){... on PostActionSuccess{post{'+POST_FIELDS+'}} ... on MutationError{message}}}',
+              {'input':{'id':before['id'],'text':expected,'assets':[{'video':{'url':url}}], 'metadata':native_metadata(service,item)}})['editPost']
+            after=result.get('post')
+            if not after: raise RuntimeError('Edit refused: '+tag+'/'+service+': '+str(result.get('message')))
+            if any(after[k]!=before[k] for k in ('id','channelId','dueAt','status')) or after['text']!=expected or not any(a.get('source')==url for a in after.get('assets',[])):
+                raise RuntimeError('Edit verification failed: '+tag+'/'+service)
+            ledger['posts'][service]=after
+            ledger['growth_test_pending']['completed'].append(service)
+            save(release,ledger)
+            print('VERIFIED '+tag+' '+service+' '+after['id'],flush=True)
+        ledger['content']=item; ledger['title']=item['title']; ledger['video']=url; ledger['delivery_video']=url
+        ledger['growth_test']={'sha256':digest,'url':url,'kind':'illustrative control','voice':'af_heart'}
+        ledger.pop('growth_test_pending',None)
+        save(release,ledger)
+        print('TEST READY '+tag,flush=True)
+
 def existing_posts(*, now=None, metrics=False):
     now = now or dt.datetime.now(SAST)
     start = dt.datetime.combine(now.date() - dt.timedelta(days=AUDIT_DAYS), dt.time(), SAST)
@@ -359,7 +415,7 @@ def caption(item, service, tag):
     campaign = 'evergreen_shopping_tips' if item.get('date', '') > LEGACY_END.isoformat() else '30_day_shopping_tips'
     link = ORIGIN + '/?utm_source=' + service + '&utm_medium=organic_social&utm_campaign=' + campaign + '&utm_content=' + tag
     disclosure = 'AI narration and illustrative AI product visuals.' if item.get('creative_version') == 'creative-v2' else 'AI narration and original motion graphics.'
-    return item['title'] + '\n\n' + item['caption'] + '\nStart your next price check: ' + link + '\n' + disclosure + ' #SouthAfrica #ShoppingTips #CwhereUcheaper' + (' #Shorts' if service == 'youtube' else '')
+    return item['title'] + '\n\n' + item['caption'] + '\nStart your next price check: ' + link + '\n' + disclosure + ' ' + item.get('growth_hashtags', '#SouthAfrica #ShoppingTips #CwhereUcheaper') + (' #Shorts' if service == 'youtube' else '')
 
 
 def run(day, slot, *, now, immediate=False, preflight=False):
@@ -596,11 +652,14 @@ def review():
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--mode', choices=['scheduled', 'preflight', 'bootstrap', 'smoke', 'audit', 'review', 'prepare', 'prime', 'refresh-media', 'upgrade-creative'], default='scheduled')
+    p.add_argument('--mode', choices=['scheduled', 'preflight', 'bootstrap', 'smoke', 'audit', 'review', 'prepare', 'prime', 'refresh-media', 'upgrade-creative', 'growth-test'], default='scheduled')
     args = p.parse_args()
     now = dt.datetime.now(SAST)
     check_access_expiry(now)
     ensure_plans(now.date())
+    if args.mode == 'growth-test':
+        apply_growth_test(now)
+        return
     if args.mode == 'upgrade-creative':
         upgrade_creative(now)
         return

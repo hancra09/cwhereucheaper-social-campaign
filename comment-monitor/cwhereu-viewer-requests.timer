@@ -1,0 +1,10 @@
+[Unit]
+Description=Select supported viewer requests twice hourly
+
+[Timer]
+OnCalendar=*-*-* *:25,55:00
+Persistent=true
+Unit=cwhereu-viewer-requests.service
+
+[Install]
+WantedBy=timers.target

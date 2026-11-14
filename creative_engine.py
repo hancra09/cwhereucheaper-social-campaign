@@ -86,6 +86,8 @@ def render(t):
   text(im,'CLEARER CHOICES.',(88,425),79,YELLOW,True)
   y=650-round(24*pop);rr(im,(62,y-20,1018,y+568),BLUE,32)
   shot=web.resize((920,518),Image.Resampling.LANCZOS);im.paste(shot,(80,y))
+  if CFG.get('response_request'):
+   text(im,'Website image captured 12 Nov 2026',(540,1205),31,WHITE,False,'mm')
   rr(im,(100,1260,980,1380),YELLOW,60)
   text(im,'Compare before checkout',(540,1320),52,NAVY,True,'mm')
   text(im,'cwhereucheaper.co.za',(540,1490),61,WHITE,True,'mm')
@@ -192,7 +194,7 @@ def lesson(item,tag):
   'delivery':[('EXACT ITEM','Match the product.'),('DELIVERY + FEES','Add the checkout charges.'),('GETTING IT HOME','Include relevant travel costs.')],
   'unit':[('SAME PRODUCT','Check brand and variant.'),('SAME UNIT','Compare equivalent quantities.'),('FINAL COST','Check the full amount.')],
  }
- cfg={'title':item['title'],'core':core,'facts':facts,'hook_card':hook,'wrap_card':wrap,'checks':checks.get(kind,[('RIGHT ITEM','Match your household needs.'),('FINAL TOTAL','Include delivery and fees.'),('USEFUL AMOUNT','Avoid buying waste.')]),'fact_cards':['Check the detail.','Compare on the same basis.','Decide from the full picture.'],'asset':'bottles.png' if re.search('millilitre|litre|bottle',core,re.I) else 'pouches.png' if kind=='unit' else 'basket.png','comparison':None}
+ cfg={'response_request':bool(item.get('response_request_id')),'title':item['title'],'core':core,'facts':facts,'hook_card':hook,'wrap_card':wrap,'checks':checks.get(kind,[('RIGHT ITEM','Match your household needs.'),('FINAL TOTAL','Include delivery and fees.'),('USEFUL AMOUNT','Avoid buying waste.')]),'fact_cards':['Check the detail.','Compare on the same basis.','Decide from the full picture.'],'asset':'bottles.png' if re.search('millilitre|litre|bottle',core,re.I) else 'pouches.png' if kind=='unit' else 'basket.png','comparison':None}
  cfg['segments']=[hook,*facts,wrap,'Compare before checkout. Your wallet can thank you later.']
  if item['title']=='A small bottle can have a smaller unit price':
   cfg['segments']=["Bigger bottle, better deal? My trolley has trust issues.","In this example, five hundred millilitres for twenty rand is forty rand per litre.","The one-litre bottle? Forty-five rand per litre.","Small bottle, smaller unit price. Big bottle... big confidence.","Match the exact product first. Your wallet deserves fewer plot twists.","Compare before checkout. Your wallet can thank you later."]

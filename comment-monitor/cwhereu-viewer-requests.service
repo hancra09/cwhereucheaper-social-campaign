@@ -1,0 +1,24 @@
+[Unit]
+Description=CWhereUCheaper private viewer request selector
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+StateDirectory=cwhereu-viewer-requests
+StateDirectoryMode=0700
+LoadCredentialEncrypted=github-token:/etc/cwhereu-social-trigger/github-token.cred
+ExecStart=/usr/bin/python3 /usr/local/lib/cwhereu-comment-monitor/request_dispatch.py
+TimeoutStartSec=180
+MemoryMax=128M
+CPUQuota=5%
+Nice=19
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX

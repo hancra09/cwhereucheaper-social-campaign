@@ -418,8 +418,8 @@ def caption(item, service, tag):
     return item['title'] + '\n\n' + item['caption'] + '\nStart your next price check: ' + link + '\n' + disclosure + ' ' + item.get('growth_hashtags', '#SouthAfrica #ShoppingTips #CwhereUcheaper') + (' #Shorts' if service == 'youtube' else '')
 
 
-def run(day, slot, *, now, immediate=False, preflight=False):
-    item = campaign_item(day, slot)
+def run(day, slot, *, now, immediate=False, preflight=False, request_item=None):
+    item = request_item or campaign_item(day, slot)
     due = dt.datetime.combine(day, SLOTS[slot], SAST)
     if immediate:
         assert os.environ.get('ALLOW_SMOKE') == '1' and day == START and slot == 'am' and now.date() == dt.date(2026, 11, 7)
@@ -580,6 +580,68 @@ def prepare_ahead(now):
     return False
 
 
+
+def prepare_request(now, topic, request_id):
+    """Reserve only a vacant normal slot; keep existing queues untouched."""
+    import re
+    from response import research, build
+    if not re.fullmatch(r'[a-f0-9]{32}', request_id or '') or topic != 'delivery_total_v1':
+        raise ValueError('Unsupported request or invalid identifier')
+    request_release = load_release('viewer-request-' + request_id)
+    request_ledger = json.loads(request_release['body'] or '{}')
+    if request_ledger.get('topic') not in (None,topic):
+        raise ValueError('Request identifier reused')
+    if request_ledger.get('state') == 'scheduled':
+        return True
+    posts = existing_posts(now=now)
+    if any(sum(p['channelId'] == channel and p['status'] in ('scheduled','sending') for p in posts) >= 9 for channel in CHANNELS.values()):
+        print('Request deferred: campaign queue is full.')
+        return False
+    selected = request_ledger.get('slot')
+    if not selected:
+        if len(render_budget(now)) >= DAILY_RENDER_LIMIT:
+            print('Request deferred: daily render budget exhausted.')
+            return False
+        item = build(topic,research())
+        item['response_request_id'] = request_id
+        for day, slot in future_slots(now):
+            tag = day.strftime('%Y%m%d')+'-'+slot
+            if any('utm_content='+tag+'\n' in p.get('text','') for p in posts) or read_release(tag):
+                continue
+            request_ledger.update({'topic':topic,'slot':tag,'state':'reserving'})
+            save(request_release,request_ledger)
+            slot_release = load_release(tag)
+            slot_ledger = json.loads(slot_release['body'] or '{}')
+            if slot_ledger:
+                raise RuntimeError('Slot became occupied; refusing overwrite')
+            slot_ledger.update({'slot':tag,'content':item,'response_request_id':request_id})
+            save(slot_release,slot_ledger)
+            selected=tag
+            break
+        if not selected:
+            print('Request deferred: no vacant slot in horizon.')
+            return False
+    day_text, slot = selected.split('-',1)
+    day = dt.datetime.strptime(day_text,'%Y%m%d').date()
+    if now > dt.datetime.combine(day,SLOTS[slot],SAST) - dt.timedelta(hours=MIN_LEAD_HOURS):
+        raise RuntimeError('Reserved response slot too close; no post created.')
+    research()  # Reconfirm current source before a resumed scheduling attempt.
+    slot_release = read_release(selected)
+    if not slot_release:
+        raise RuntimeError('Reserved response slot missing; review required.')
+    ledger = json.loads(slot_release['body'] or '{}')
+    if ledger.get('response_request_id') != request_id:
+        raise RuntimeError('Response slot belongs to another request.')
+    run(day,slot,now=now,request_item=ledger['content'])
+    confirmed = json.loads(read_release(selected)['body'] or '{}')
+    if confirmed.get('state') != 'scheduled' or set(confirmed.get('posts',{})) != set(CHANNELS):
+        raise RuntimeError('Response delivery not fully confirmed.')
+    request_ledger.update({'topic':topic,'slot':selected,'state':'scheduled'})
+    save(request_release,request_ledger)
+    print('Viewer response scheduled in campaign slot:',selected)
+    return True
+
+
 def audit():
     now = dt.datetime.now(SAST)
     posts = existing_posts(now=now)
@@ -652,11 +714,16 @@ def review():
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('--mode', choices=['scheduled', 'preflight', 'bootstrap', 'smoke', 'audit', 'review', 'prepare', 'prime', 'refresh-media', 'upgrade-creative', 'growth-test'], default='scheduled')
+    p.add_argument('--mode', choices=['scheduled', 'preflight', 'bootstrap', 'smoke', 'audit', 'review', 'prepare', 'prime', 'refresh-media', 'upgrade-creative', 'growth-test', 'viewer-response'], default='scheduled')
+    p.add_argument('--request-topic', default='')
+    p.add_argument('--request-id', default='')
     args = p.parse_args()
     now = dt.datetime.now(SAST)
     check_access_expiry(now)
     ensure_plans(now.date())
+    if args.mode == 'viewer-response':
+        prepare_request(now,args.request_topic,args.request_id)
+        return
     if args.mode == 'growth-test':
         apply_growth_test(now)
         return

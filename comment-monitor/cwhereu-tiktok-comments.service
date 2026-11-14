@@ -1,0 +1,25 @@
+[Unit]
+Description=CWhereUCheaper read-only TikTok comment monitor
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+DynamicUser=yes
+StateDirectory=cwhereu-tiktok-comments
+StateDirectoryMode=0700
+LoadCredentialEncrypted=tiktok-social:/etc/cwhereu-comment-monitor/tiktok-social.cred
+LoadCredentialEncrypted=tiktok-envelope:/etc/cwhereu-comment-monitor/tiktok-envelope.cred
+ExecStart=/usr/bin/python3 /usr/local/lib/cwhereu-comment-monitor/tiktok_monitor.py
+TimeoutStartSec=600
+MemoryMax=128M
+CPUQuota=5%
+Nice=19
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX

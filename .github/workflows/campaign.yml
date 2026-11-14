@@ -19,7 +19,16 @@ on:
         description: Campaign action
         type: choice
         default: preflight
-        options: [preflight, bootstrap, smoke, audit, scheduled, prepare, review, prime, refresh-media, upgrade-creative, growth-test]
+        options: [preflight, bootstrap, smoke, audit, scheduled, prepare, review, prime, refresh-media, upgrade-creative, growth-test, viewer-response]
+
+      request_topic:
+        description: Allowed research topic
+        type: string
+        required: false
+      request_id:
+        description: Random opaque request identifier
+        type: string
+        required: false
 
 permissions:
   contents: write
@@ -38,6 +47,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       REQUESTED_MODE: ${{ inputs.mode }}
       EVENT_SCHEDULE: ${{ github.event.schedule }}
+      REQUEST_TOPIC: ${{ inputs.request_topic }}
+      REQUEST_ID: ${{ inputs.request_id }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
@@ -52,7 +63,7 @@ jobs:
           path: ~/.cache/cwuc-voice-assets
           key: cwuc-kokoro-model-files-v1.1-${{ runner.os }}-${{ runner.arch }}
       - name: Check campaign safety guards
-        run: python3 -m unittest -q test_campaign.py test_creative.py > safety-fixture-output.log
+        run: python3 -m unittest -q test_campaign.py test_creative.py test_response.py test_response_schedule.py > safety-fixture-output.log
       - name: Install video validation tools
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Run bounded cloud workflow
@@ -64,4 +75,4 @@ jobs:
           if [[ "$EVENT_SCHEDULE" == '50 10,16 * * *' || "$EVENT_SCHEDULE" == '20 6 * * *' ]]; then mode=audit; fi
           if [[ "$EVENT_SCHEDULE" == '10 17 * * 0' ]]; then mode=review; fi
           if [[ "$mode" == smoke ]]; then export ALLOW_SMOKE=1; fi
-          python3 campaign.py --mode "$mode"
+          python3 campaign.py --mode "$mode" --request-topic "$REQUEST_TOPIC" --request-id "$REQUEST_ID"

@@ -1,0 +1,11 @@
+[Unit]
+Description=Check Facebook comments twice hourly
+
+[Timer]
+OnActiveSec=30s
+OnCalendar=*-*-* *:20,50:00
+Persistent=true
+Unit=cwhereu-facebook-comments.service
+
+[Install]
+WantedBy=timers.target

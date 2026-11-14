@@ -1,0 +1,24 @@
+[Unit]
+Description=CWhereUCheaper read-only Facebook comment monitor
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+DynamicUser=yes
+StateDirectory=cwhereu-facebook-comments
+StateDirectoryMode=0700
+LoadCredentialEncrypted=socialapi-key:/etc/cwhereu-comment-monitor/socialapi-key.cred
+ExecStart=/usr/bin/python3 /usr/local/lib/cwhereu-comment-monitor/facebook_monitor.py
+TimeoutStartSec=600
+MemoryMax=128M
+CPUQuota=5%
+Nice=19
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX

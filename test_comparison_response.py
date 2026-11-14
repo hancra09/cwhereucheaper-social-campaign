@@ -13,7 +13,7 @@ class Tests(unittest.TestCase):
  def test_verified_comparison_has_scope_and_dates(self):
   with patch.object(c,'product_research',side_effect=[E1,E2]):e=c.research('14535-30273')
   item=c.build(e)
-  self.assertIn('R540.00',item['script']);self.assertIn('R450.00',item['script'])
+  self.assertIn('R540.00',item['script']);self.assertIn('R450.00',item['script']);self.assertTrue(item['title'].startswith('R540.00 vs R450.00'))
   self.assertIn('two stores before delivery',item['script']);self.assertIn('13:32 SAST',item['caption'])
  def test_different_product_is_rejected(self):
   with patch.object(c,'product_research',side_effect=[E1,dict(E2,product='IDEAL PUPPY DOG FOOD 20KG')]):

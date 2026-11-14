@@ -51,7 +51,7 @@ def build(evidence):
     a,b=evidence['items'];when=dt.datetime.fromisoformat(evidence['checked_sast']); date=when.strftime('%d %B %Y');time=when.strftime('%H:%M')
     name=a['product'];
     if len(name)>65:raise ValueError('Product name too long')
-    return {'title':'Price check: '+name,
+    return {'title':'R'+a['price']+' vs R'+b['price']+': '+name,
       'script':f"On {date}, Animals First listed {name} for R{a['price']}. Turf Pet Hyper listed the same item for R{b['price']}. These are item prices at those two stores before delivery. Prices and availability can change, so check both pages before buying.",
       'caption':f"Two-store check at {time} SAST on {date}: {name}. Animals First: R{a['price']}; Turf Pet Hyper: R{b['price']}. Item prices only; delivery and availability may change. Sources: {a['url']} {b['url']}",
       'style':'Educational','theme':'shopping-check','growth_hashtags':'#PriceComparison #SmartShopping #SouthAfrica','creative_version':'creative-v2',

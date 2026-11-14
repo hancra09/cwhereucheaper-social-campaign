@@ -118,3 +118,20 @@ class ComparisonGuardTests(unittest.TestCase):
   with patch.object(c,'buffer',return_value={'channels':channels}) as api,patch.object(c,'existing_posts',return_value=[]),patch.object(c,'load_release',return_value=release),patch.object(c,'generate',return_value='https://example.com/video.mp4'),patch('comparison_response.research',return_value=dict(e,signature='changed')):
    with self.assertRaisesRegex(RuntimeError,'expired or changed'):c.run(day,'early',now=now,request_item=item)
    self.assertEqual(api.call_count,1)
+
+class ComparisonSchedulingTests(unittest.TestCase):
+ def test_researched_comparison_uses_one_vacant_slot_once(self):
+  from comparison_response import signature
+  now=dt.datetime.now(c.SAST);day=now.date()+dt.timedelta(days=1);releases={}
+  def load(tag):return releases.setdefault(tag,{'id':tag,'body':'{}','assets':[]})
+  def save(rel,ledger):rel['body']=json.dumps(ledger)
+  a={'product_id':'14535','product':'20kg Ideal Adult Dog Food','retailer':'Animals First','price':'540.00','url':'https://animalsfirst.co.za/product/a/','checked_sast':now.isoformat()}
+  b={'product_id':'30273','product':'IDEAL ADULT DOG FOOD 20KG','retailer':'Turf Pet Hyper','price':'450.00','url':'https://turfhyper.co.za/product/b/','checked_sast':now.isoformat()}
+  evidence={'items':[a,b],'subject':'14535-30273','checked_sast':now.isoformat(),'signature':signature([a,b])}
+  def simulated_run(day,slot,*,now,request_item):
+   self.assertIn('two stores before delivery',request_item['script'])
+   tag=day.strftime('%Y%m%d')+'-'+slot;rel=releases[tag];ledger=json.loads(rel['body']);ledger.update({'state':'scheduled','posts':{s:{'status':'scheduled'} for s in c.CHANNELS}});save(rel,ledger)
+  with patch.object(c,'future_slots',return_value=[(day,'early')]),patch.object(c,'load_release',side_effect=load),patch.object(c,'read_release',side_effect=lambda tag:releases.get(tag)),patch.object(c,'save',side_effect=save),patch.object(c,'existing_posts',return_value=[]),patch.object(c,'render_budget',return_value=[]),patch.object(c,'run',side_effect=simulated_run) as run,patch('comparison_response.research',return_value=evidence):
+   self.assertTrue(c.prepare_request(now,'product_compare_v1','d'*32,'14535-30273'))
+   self.assertTrue(c.prepare_request(now,'product_compare_v1','d'*32,'14535-30273'))
+   self.assertEqual(run.call_count,1)

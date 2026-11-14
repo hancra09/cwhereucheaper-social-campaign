@@ -27,6 +27,11 @@ class ResponseTests(unittest.TestCase):
         self.assertIn('storage',r.build('bulk_buying_v1',{'url':r.UNIT_SOURCE})['script'])
         self.assertIn('list',r.build('shopping_plan_v1',{'url':r.UNIT_SOURCE})['script'])
         self.assertIsNone(r.select('Please compare the price of Clover milk?'))
+    def test_natural_generic_question_phrasing(self):
+        self.assertEqual(r.select('Could you please make a video explaining how unit prices work?'),'unit_price_v1')
+        self.assertEqual(r.select('Can you help me understand delivery costs?'),'delivery_total_v1')
+        self.assertEqual(r.select('Can you explain how shopping lists save money?'),'shopping_plan_v1')
+        self.assertIsNone(r.select('Can you explain why Acme milk costs more?'))
     def test_missing_evidence_stops(self):
         with self.assertRaises(ValueError): r.research(lambda _: b'<html>page unavailable</html>')
         with self.assertRaises(ValueError): r.build('delivery_total_v1',{})

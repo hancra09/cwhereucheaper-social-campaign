@@ -103,6 +103,7 @@ def include_approved_synthetic(candidates,state,now=None):
     now=now or dt.datetime.now(dt.timezone.utc)
     if start.tzinfo is None or end.tzinfo is None or not start<end or end-start>dt.timedelta(days=3):
         raise ValueError('Invalid synthetic test period')
+    candidates.available.add('synthetic')
     if not start<=now<end:return
     topic=select(body)
     if topic!='unit_price_v1':raise ValueError('Synthetic request classification failed')
@@ -120,7 +121,7 @@ def api(path,token,payload=None):
         return json.loads(raw) if raw else None
 
 
-def run(db, token, candidates, call=api):
+def run(db, token, candidates, call=api, *, guard_active=True):
     db.execute('''CREATE TABLE IF NOT EXISTS requests
         (source TEXT NOT NULL, comment_id TEXT NOT NULL, body_sha TEXT NOT NULL,
          topic TEXT NOT NULL, subject TEXT NOT NULL DEFAULT '', request_id TEXT NOT NULL, state TEXT NOT NULL,
@@ -136,63 +137,70 @@ def run(db, token, candidates, call=api):
         db.execute('''INSERT INTO unhandled(source,comment_id,body_sha) VALUES(?,?,?)
             ON CONFLICT(source,comment_id,body_sha) DO UPDATE SET last_seen=CURRENT_TIMESTAMP''',(source,cid,digest))
     for source,cid,digest,topic,subject in candidates:
-        recent=db.execute("SELECT 1 FROM requests WHERE topic=? AND subject=? AND state IN ('pending','dispatching','scheduled') AND datetime(created_at) >= datetime('now','-7 days') LIMIT 1",(topic,subject)).fetchone()
+        recent=db.execute("SELECT 1 FROM requests WHERE topic=? AND subject=? AND (source='synthetic')=(?='synthetic') AND state IN ('pending','dispatching','scheduled') AND datetime(created_at) >= datetime('now','-7 days') LIMIT 1",(topic,subject,source)).fetchone()
         if recent:
             continue
         db.execute('INSERT OR IGNORE INTO requests(source,comment_id,body_sha,topic,subject,request_id,state) VALUES(?,?,?,?,?,?,?)',
                    (source,cid,digest,topic,subject,uuid.uuid4().hex,'pending'))
     db.commit()
-    pending=db.execute("SELECT source,comment_id,body_sha,topic,subject,request_id,state,attempted_at,attempt FROM requests WHERE state IN ('pending','dispatching') ORDER BY rowid LIMIT 1").fetchone()
+    pending=db.execute("SELECT source,comment_id,body_sha,topic,subject,request_id,state,attempted_at,attempt FROM requests WHERE state IN ('pending','dispatching') ORDER BY CASE WHEN state='dispatching' THEN 0 WHEN source!='synthetic' THEN 1 ELSE 2 END, rowid").fetchall()
     if not pending:
         print('No supported viewer requests pending; unsupported questions observed:',len(getattr(candidates,'unhandled',[])))
         return
-    source,cid,digest,topic,subject,rid,state,attempted,attempt=pending
-    if state=='dispatching':
-        # No blind duplicate while the prior run may still be queued or executing.
-        runs=call('actions/workflows/campaign.yml/runs?per_page=100',token)['workflow_runs']
-        marker='viewer-'+rid+'-'+str(attempt)
-        match=next((x for x in runs if x.get('display_title','').endswith(marker)),None)
-        if match and match['status']!='completed':
-            print('Viewer request workflow still running.')
-            return
-        result=None
-        try:
-            rel=call('releases/tags/viewer-request-'+rid,token)
-            result=json.loads(rel.get('body') or '{}')
-            if result.get('state')=='scheduled':
-                db.execute("UPDATE requests SET state='scheduled' WHERE request_id=?",(rid,)); db.commit()
-                print('Viewer response scheduling verified.')
+    runs=None
+    def get_runs():
+        nonlocal runs
+        if runs is None:
+            response=call('actions/workflows/campaign.yml/runs?per_page=100',token)
+            if not isinstance(response,dict) or not isinstance(response.get('workflow_runs'),list):
+                raise ValueError('Campaign run status unavailable')
+            runs=response['workflow_runs']
+        return runs
+    for source,cid,digest,topic,subject,rid,state,attempted,attempt in pending:
+        if state=='dispatching':
+            prior=get_runs()
+            marker='viewer-'+rid+'-'+str(attempt)
+            match=next((x for x in prior if x.get('display_title','').endswith(marker)),None)
+            if match and match['status']!='completed':
+                print('Viewer request workflow still running.')
                 return
-        except urllib.error.HTTPError as exc:
-            if exc.code!=404: raise
-        # Give uncertain dispatches two hours; repeat with the same durable request ID.
-        when=dt.datetime.fromisoformat(attempted)
-        now=dt.datetime.now(dt.timezone.utc)
-        sast=dt.timezone(dt.timedelta(hours=2))
-        # A completed, slot-free attempt from yesterday may try again immediately
-        # after the daily budget resets. Uncertain or partially reserved work waits.
-        reset_safe=(match is not None and match.get('status')=='completed'
-            and match.get('conclusion')=='success' and isinstance(result,dict)
-            and not result.get('slot') and when.astimezone(sast).date()<now.astimezone(sast).date())
-        if now-when < dt.timedelta(hours=2) and not reset_safe:
-            print('Viewer request awaiting safe reconciliation.')
+            result=None
+            try:
+                rel=call('releases/tags/viewer-request-'+rid,token)
+                result=json.loads(rel.get('body') or '{}')
+                if result.get('state')=='scheduled':
+                    db.execute("UPDATE requests SET state='scheduled' WHERE request_id=?",(rid,));db.commit()
+                    print('Viewer response scheduling verified.')
+                    continue
+            except urllib.error.HTTPError as exc:
+                if exc.code!=404:raise
+            when=dt.datetime.fromisoformat(attempted)
+            now=dt.datetime.now(dt.timezone.utc);sast=dt.timezone(dt.timedelta(hours=2))
+            reset_safe=(match is not None and match.get('status')=='completed'
+                and match.get('conclusion')=='success' and isinstance(result,dict)
+                and not result.get('slot') and when.astimezone(sast).date()<now.astimezone(sast).date())
+            if now-when < dt.timedelta(hours=2) and not reset_safe:
+                continue
+        if source not in getattr(candidates,'available',{source}):
+            continue
+        if (source,cid,digest,topic,subject) not in candidates:
+            db.execute("UPDATE requests SET state='withdrawn' WHERE request_id=?",(rid,));db.commit()
+            print('Request no longer present; no response dispatched.')
+            continue
+        if guard_active and any(r.get('status') in ('queued','in_progress','waiting','pending','requested') for r in get_runs()):
+            print('Campaign workflow active; viewer request retained for retry.')
             return
-    if source not in getattr(candidates,'available',{source}):
-        print('Request source unavailable; retaining request.')
+        # Persist before dispatch. Only an allowed topic and opaque IDs leave this host.
+        attempt+=1
+        stamp=dt.datetime.now(dt.timezone.utc).isoformat()
+        db.execute("UPDATE requests SET state='dispatching',attempted_at=?,attempt=? WHERE request_id=?",(stamp,attempt,rid));db.commit()
+        call('actions/workflows/campaign.yml/dispatches',token,{'ref':'main','inputs':{
+            'mode':'viewer-response','dispatch_id':'viewer-'+rid+'-'+str(attempt),
+            'request_topic':topic,'request_subject':subject,'request_id':rid,
+            'request_origin':'synthetic' if source=='synthetic' else ''}})
+        print('Supported viewer request dispatched for researched response.')
         return
-    if (source,cid,digest,topic,subject) not in candidates:
-        db.execute("UPDATE requests SET state='withdrawn' WHERE request_id=?",(rid,)); db.commit()
-        print('Request no longer present; no response dispatched.')
-        return
-    # Persist before dispatch; only an opaque random ID and an allowed topic leave this host.
-    attempt+=1
-    stamp=dt.datetime.now(dt.timezone.utc).isoformat()
-    db.execute("UPDATE requests SET state='dispatching',attempted_at=?,attempt=? WHERE request_id=?",(stamp,attempt,rid)); db.commit()
-    call('actions/workflows/campaign.yml/dispatches',token,{'ref':'main','inputs':{
-        'mode':'viewer-response','dispatch_id':'viewer-'+rid+'-'+str(attempt),
-        'request_topic':topic,'request_subject':subject,'request_id':rid,
-        'request_origin':'synthetic' if source=='synthetic' else ''}})
-    print('Supported viewer request dispatched for researched response.')
+    print('No viewer request eligible for dispatch yet.')
 
 
 def main():
@@ -202,8 +210,19 @@ def main():
     with sqlite3.connect(state/'requests.sqlite') as db:
         os.chmod(state/'requests.sqlite',0o600)
         candidates=read_candidates()
-        include_approved_synthetic(candidates,state)
+        try:
+            include_approved_synthetic(candidates,state)
+        except (OSError,ValueError,TypeError,KeyError):
+            print('Synthetic test manifest invalid; skipping it.',file=sys.stderr)
         run(db,token,candidates)
+        manifest=state/'approved-synthetic-test.json'
+        if manifest.exists():
+            try:
+                ident=json.loads(manifest.read_text())['id']
+                done=db.execute("SELECT state FROM requests WHERE source='synthetic' AND comment_id=?",(ident,)).fetchone()
+                if done and done[0] in ('scheduled','withdrawn'):manifest.unlink()
+            except (OSError,ValueError,TypeError,KeyError):
+                pass
 
 if __name__=='__main__':
     try: main()

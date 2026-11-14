@@ -1,5 +1,8 @@
 import json,sqlite3,unittest
-from request_dispatch import run
+from request_dispatch import run as real_run
+
+def run(db,token,candidates,call):
+ return real_run(db,token,candidates,call,guard_active=False)
 
 class DispatchTests(unittest.TestCase):
  def test_synthetic_request_dispatch_excludes_comment_and_reconciles(self):
@@ -141,14 +144,14 @@ class DailyPriorityTests(unittest.TestCase):
     return value.astimezone(tz) if tz else value.replace(tzinfo=None)
   original=[('facebook','q','digest','delivery_total_v1','')];calls=[]
   with sqlite3.connect(':memory:') as db:
-   d.run(db,'dummy',original,lambda path,token,payload=None:calls.append((path,payload)))
+   d.run(db,'dummy',original,lambda path,token,payload=None:calls.append((path,payload)),guard_active=False)
    rid=db.execute('SELECT request_id FROM requests').fetchone()[0]
    db.execute("UPDATE requests SET attempted_at='2026-11-14T21:55:00+00:00'");db.commit()
    def api(path,token,payload=None):
     calls.append((path,payload))
     if '/runs?' in path:return {'workflow_runs':[{'display_title':'Cloud video campaign viewer-'+rid+'-1','status':'completed','conclusion':'success'}]}
     if path.startswith('releases/tags/'):return {'body':'{}'}
-   with patch.object(d.dt,'datetime',Clock):d.run(db,'dummy',original,api)
+   with patch.object(d.dt,'datetime',Clock):d.run(db,'dummy',original,api,guard_active=False)
    self.assertEqual(sum('dispatches' in path for path,_ in calls),2)
    self.assertEqual(db.execute('select attempt from requests').fetchone()[0],2)
 
@@ -163,14 +166,14 @@ class DailyPriorityTests(unittest.TestCase):
     return value.astimezone(tz) if tz else value.replace(tzinfo=None)
   original=[('facebook','q','digest','delivery_total_v1','')];calls=[]
   with sqlite3.connect(':memory:') as db:
-   d.run(db,'dummy',original,lambda path,token,payload=None:calls.append((path,payload)))
+   d.run(db,'dummy',original,lambda path,token,payload=None:calls.append((path,payload)),guard_active=False)
    rid=db.execute('SELECT request_id FROM requests').fetchone()[0]
    db.execute("UPDATE requests SET attempted_at='2026-11-14T21:55:00+00:00'");db.commit()
    def api(path,token,payload=None):
     calls.append((path,payload))
     if '/runs?' in path:return {'workflow_runs':[{'display_title':'Cloud video campaign viewer-'+rid+'-1','status':'completed','conclusion':'success'}]}
     if path.startswith('releases/tags/'):return {'body':'{"slot":"20261116-am"}'}
-   with patch.object(d.dt,'datetime',Clock):d.run(db,'dummy',original,api)
+   with patch.object(d.dt,'datetime',Clock):d.run(db,'dummy',original,api,guard_active=False)
    self.assertEqual(sum('dispatches' in path for path,_ in calls),1)
 
 class SyntheticManifestTests(unittest.TestCase):
@@ -188,7 +191,7 @@ class SyntheticManifestTests(unittest.TestCase):
    with sqlite3.connect(':memory:') as db:run(db,'dummy',active,lambda path,token,payload=None:calls.append(payload))
    self.assertEqual(calls[0]['inputs']['request_origin'],'synthetic')
    self.assertNotIn('Please show',json.dumps(calls))
-   late=Candidates();include_approved_synthetic(late,tmp,start+datetime.timedelta(days=2));self.assertEqual(len(late),0)
+   late=Candidates();include_approved_synthetic(late,tmp,start+datetime.timedelta(days=2));self.assertEqual(len(late),0);self.assertIn('synthetic',late.available)
  def test_unapproved_manifest_fails_closed(self):
   import tempfile
   from pathlib import Path
@@ -196,3 +199,49 @@ class SyntheticManifestTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as tmp:
    (Path(tmp)/'approved-synthetic-test.json').write_text(json.dumps({'id':'f'*32,'body':'Fake other suggestion'}))
    with self.assertRaises(ValueError):include_approved_synthetic(Candidates(),tmp)
+
+class SyntheticPriorityTests(unittest.TestCase):
+ def test_real_request_wins_and_test_does_not_suppress_it(self):
+  candidates=[('synthetic','fake','hash1','unit_price_v1',''),('youtube','real','hash2','unit_price_v1','')]
+  calls=[]
+  with sqlite3.connect(':memory:') as db:
+   run(db,'dummy',candidates,lambda path,token,payload=None:calls.append(payload))
+   self.assertEqual(db.execute('select count(*) from requests').fetchone()[0],2)
+   self.assertEqual(calls[0]['inputs']['request_origin'],'')
+   self.assertEqual(db.execute("select state from requests where source='synthetic'").fetchone()[0],'pending')
+
+class RequestConcurrencyTests(unittest.TestCase):
+ def test_inflight_synthetic_is_reconciled_before_new_real_dispatch(self):
+  fake=('synthetic','fake','hash1','unit_price_v1','');real=('youtube','real','hash2','unit_price_v1','');calls=[]
+  with sqlite3.connect(':memory:') as db:
+   run(db,'dummy',[fake],lambda path,token,payload=None:calls.append((path,payload)))
+   rid=db.execute('select request_id from requests').fetchone()[0]
+   def api(path,token,payload=None):
+    calls.append((path,payload))
+    if '/runs?' in path:return {'workflow_runs':[{'display_title':'Cloud video campaign viewer-'+rid+'-1','status':'in_progress'}]}
+   run(db,'dummy',[fake,real],api)
+   self.assertEqual(sum('dispatches' in path for path,_ in calls),1)
+   self.assertEqual(db.execute("select state from requests where source='youtube'").fetchone()[0],'pending')
+
+class RecoveryAndQueueTests(unittest.TestCase):
+ def test_stalled_request_does_not_block_a_different_request(self):
+  first=('facebook','one','hash1','delivery_total_v1','');second=('youtube','two','hash2','bulk_buying_v1','');calls=[]
+  with sqlite3.connect(':memory:') as db:
+   real_run(db,'dummy',[first],lambda path,token,payload=None:calls.append((path,payload)),guard_active=False)
+   rid=db.execute('select request_id from requests').fetchone()[0]
+   def api(path,token,payload=None):
+    calls.append((path,payload))
+    if '/runs?' in path:return {'workflow_runs':[{'display_title':'Cloud video campaign viewer-'+rid+'-1','status':'completed','conclusion':'failure'}]}
+    if path.startswith('releases/tags/'):return {'body':'{}'}
+   real_run(db,'dummy',[first,second],api,guard_active=False)
+   sends=[payload for path,payload in calls if 'dispatches' in path]
+   self.assertEqual(len(sends),2);self.assertEqual(sends[-1]['inputs']['request_topic'],'bulk_buying_v1')
+ def test_existing_campaign_run_prevents_new_dispatch(self):
+  calls=[]
+  def api(path,token,payload=None):
+   calls.append(path)
+   if '/runs?' in path:return {'workflow_runs':[{'status':'in_progress','display_title':'Cloud video campaign prime'}]}
+  with sqlite3.connect(':memory:') as db:
+   real_run(db,'dummy',[('youtube','real','hash','unit_price_v1','')],api)
+   self.assertEqual(db.execute('select state from requests').fetchone()[0],'pending')
+   self.assertFalse(any('dispatches' in p for p in calls))

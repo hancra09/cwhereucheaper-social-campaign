@@ -67,8 +67,8 @@ class SyntheticPipelineTests(unittest.TestCase):
     source.execute('CREATE TABLE comments(id TEXT,body TEXT,owner INTEGER)');source.execute('INSERT INTO comments VALUES(?,?,?)',('synthetic',fake,0))
    candidates=d.read_candidates({'facebook':path})
    with sqlite3.connect(':memory:') as state,patch.object(c,'load_release',side_effect=load),patch.object(c,'read_release',side_effect=read),patch.object(c,'save',side_effect=save),patch.object(c,'existing_posts',return_value=[]),patch.object(c,'render_budget',return_value=[]),patch.object(c,'run',side_effect=create_posts),patch('response.research',return_value={'url':'https://clicks.co.za/onlineshopping'}):
-    d.run(state,'test',candidates,api)
-    d.run(state,'test',candidates,api)
+    d.run(state,'test',candidates,api,guard_active=False)
+    d.run(state,'test',candidates,api,guard_active=False)
     self.assertEqual(state.execute('SELECT state FROM requests').fetchone()[0],'scheduled')
    self.assertNotIn(fake,json.dumps(calls))
    self.assertEqual(sum('dispatches' in path for path,_ in calls),1)

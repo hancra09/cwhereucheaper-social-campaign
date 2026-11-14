@@ -21,4 +21,7 @@ jobs:
               sent=[p for p in posts if p.get('channelId')==channel and p.get('status')=='sent']
               linked=[p for p in sent if p.get('externalLink')]
               print(service, 'sent records',len(sent),'with external link',len(linked))
+              if linked:
+                  from urllib.parse import urlsplit
+                  u=urlsplit(linked[0]['externalLink']); print(service,'public link shape',u.scheme,u.netloc,u.path)
           PY

@@ -78,7 +78,7 @@ jobs:
           python3 -m unittest -q test_campaign.py test_creative.py test_response.py test_product_response.py test_comparison_response.py test_response_schedule.py > safety-fixture-output.log
           (cd comment-monitor && python3 -m unittest -q test_native_verifier.py test_health_signal.py test_monitor_status.py)
       - name: Read-only backup connection check
-        run: python3 indiepost_remaining_test.py
+        run: python3 indiepost_status_check.py
       - name: Install video validation tools
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Run bounded cloud workflow

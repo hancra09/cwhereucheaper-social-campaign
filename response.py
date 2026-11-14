@@ -67,10 +67,10 @@ def build(topic, evidence):
     if topic != 'delivery_total_v1' or evidence.get('url') != SOURCE:
         raise ValueError('Unsupported or unverified topic')
     return {'title':'Can delivery change the cheaper basket?',
-      'script':('Delivery fees have entered the chat. Compare the same items and quantities at each shop. '
-                'Add delivery and any other checkout charges to each basket. '
-                'Then compare the final totals before you buy.'),
-      'caption':('A lower item price may not mean a lower checkout total. Compare the same basket and include delivery and other charges. '
+      'script':('In this made-up example, basket A costs R100 plus R40 delivery, for R140 total. '
+                'Basket B costs R120 with free delivery, so its total is R120. '
+                'The cheaper items cost more at checkout. Compare the same items and all final charges.'),
+      'caption':('Illustrative example, not current retailer prices: R100 plus R40 delivery is R140; R120 with free delivery is R120. Compare the same basket and final charges. '
                  'Retailer delivery details: https://clicks.co.za/onlineshopping'),
       'style':'Educational','theme':'checkout',
       'growth_hashtags':'#DeliveryFees #SmartShopping #SouthAfrica',

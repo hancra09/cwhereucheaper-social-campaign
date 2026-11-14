@@ -1,0 +1,10 @@
+[Unit]
+Description=Check public YouTube comments twice hourly
+
+[Timer]
+OnCalendar=*-*-* *:00,30:00
+Persistent=true
+Unit=cwhereu-youtube-comments.service
+
+[Install]
+WantedBy=timers.target

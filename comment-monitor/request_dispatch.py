@@ -132,10 +132,11 @@ def run(db, token, candidates, call=api):
         # No blind duplicate while the prior run may still be queued or executing.
         runs=call('actions/workflows/campaign.yml/runs?per_page=100',token)['workflow_runs']
         marker='viewer-'+rid+'-'+str(attempt)
-        match=next((x for x in runs if marker in x.get('display_title','')),None)
+        match=next((x for x in runs if x.get('display_title','').endswith(marker)),None)
         if match and match['status']!='completed':
             print('Viewer request workflow still running.')
             return
+        result=None
         try:
             rel=call('releases/tags/viewer-request-'+rid,token)
             result=json.loads(rel.get('body') or '{}')
@@ -147,7 +148,14 @@ def run(db, token, candidates, call=api):
             if exc.code!=404: raise
         # Give uncertain dispatches two hours; repeat with the same durable request ID.
         when=dt.datetime.fromisoformat(attempted)
-        if dt.datetime.now(dt.timezone.utc)-when < dt.timedelta(hours=2):
+        now=dt.datetime.now(dt.timezone.utc)
+        sast=dt.timezone(dt.timedelta(hours=2))
+        # A completed, slot-free attempt from yesterday may try again immediately
+        # after the daily budget resets. Uncertain or partially reserved work waits.
+        reset_safe=(match is not None and match.get('status')=='completed'
+            and match.get('conclusion')=='success' and isinstance(result,dict)
+            and not result.get('slot') and when.astimezone(sast).date()<now.astimezone(sast).date())
+        if now-when < dt.timedelta(hours=2) and not reset_safe:
             print('Viewer request awaiting safe reconciliation.')
             return
     if source not in getattr(candidates,'available',{source}):

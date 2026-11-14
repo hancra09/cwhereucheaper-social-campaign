@@ -128,3 +128,47 @@ class ComparisonIntakeTests(unittest.TestCase):
    with sqlite3.connect(':memory:') as db:run(db,'dummy',rows,lambda path,token,payload=None:sent.append(payload))
    self.assertEqual(sent[0]['inputs']['request_subject'],'14535-30273')
    self.assertNotIn(body,json.dumps(sent));self.assertNotIn('fake-comparison',json.dumps(sent))
+
+class DailyPriorityTests(unittest.TestCase):
+ def test_completed_slot_free_attempt_can_retry_after_sast_midnight(self):
+  import datetime
+  from unittest.mock import patch
+  import request_dispatch as d
+  class Clock(datetime.datetime):
+   @classmethod
+   def now(cls,tz=None):
+    value=cls(2026,11,14,22,1,tzinfo=datetime.timezone.utc)
+    return value.astimezone(tz) if tz else value.replace(tzinfo=None)
+  original=[('facebook','q','digest','delivery_total_v1','')];calls=[]
+  with sqlite3.connect(':memory:') as db:
+   d.run(db,'dummy',original,lambda path,token,payload=None:calls.append((path,payload)))
+   rid=db.execute('SELECT request_id FROM requests').fetchone()[0]
+   db.execute("UPDATE requests SET attempted_at='2026-11-14T21:55:00+00:00'");db.commit()
+   def api(path,token,payload=None):
+    calls.append((path,payload))
+    if '/runs?' in path:return {'workflow_runs':[{'display_title':'Cloud video campaign viewer-'+rid+'-1','status':'completed','conclusion':'success'}]}
+    if path.startswith('releases/tags/'):return {'body':'{}'}
+   with patch.object(d.dt,'datetime',Clock):d.run(db,'dummy',original,api)
+   self.assertEqual(sum('dispatches' in path for path,_ in calls),2)
+   self.assertEqual(db.execute('select attempt from requests').fetchone()[0],2)
+
+ def test_partial_reservation_keeps_waiting_after_midnight(self):
+  import datetime
+  from unittest.mock import patch
+  import request_dispatch as d
+  class Clock(datetime.datetime):
+   @classmethod
+   def now(cls,tz=None):
+    value=cls(2026,11,14,22,1,tzinfo=datetime.timezone.utc)
+    return value.astimezone(tz) if tz else value.replace(tzinfo=None)
+  original=[('facebook','q','digest','delivery_total_v1','')];calls=[]
+  with sqlite3.connect(':memory:') as db:
+   d.run(db,'dummy',original,lambda path,token,payload=None:calls.append((path,payload)))
+   rid=db.execute('SELECT request_id FROM requests').fetchone()[0]
+   db.execute("UPDATE requests SET attempted_at='2026-11-14T21:55:00+00:00'");db.commit()
+   def api(path,token,payload=None):
+    calls.append((path,payload))
+    if '/runs?' in path:return {'workflow_runs':[{'display_title':'Cloud video campaign viewer-'+rid+'-1','status':'completed','conclusion':'success'}]}
+    if path.startswith('releases/tags/'):return {'body':'{"slot":"20261116-am"}'}
+   with patch.object(d.dt,'datetime',Clock):d.run(db,'dummy',original,api)
+   self.assertEqual(sum('dispatches' in path for path,_ in calls),1)

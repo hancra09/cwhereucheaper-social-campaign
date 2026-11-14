@@ -129,10 +129,10 @@ def run(db, token, candidates, call=api):
         if dt.datetime.now(dt.timezone.utc)-when < dt.timedelta(hours=2):
             print('Viewer request awaiting safe reconciliation.')
             return
-    if state == 'pending' and source not in getattr(candidates,'available',{source}):
+    if source not in getattr(candidates,'available',{source}):
         print('Request source unavailable; retaining request.')
         return
-    if state == 'pending' and (source,cid,digest,topic,subject) not in candidates:
+    if (source,cid,digest,topic,subject) not in candidates:
         db.execute("UPDATE requests SET state='withdrawn' WHERE request_id=?",(rid,)); db.commit()
         print('Request no longer present; no response dispatched.')
         return

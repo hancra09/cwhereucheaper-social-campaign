@@ -92,3 +92,21 @@ class MigrationTests(unittest.TestCase):
    db.execute("INSERT INTO requests(source,comment_id,body_sha,topic,request_id,state) VALUES('facebook','x','h','delivery_total_v1','a','scheduled')")
    run(db,'dummy',[],lambda *args:self.fail('must not dispatch'))
    self.assertEqual(db.execute('select topic,subject,state from requests').fetchone(),('delivery_total_v1','','scheduled'))
+
+class WithdrawalTests(unittest.TestCase):
+ def test_deleted_comment_is_not_dispatched_again_after_failure(self):
+  from request_dispatch import Candidates
+  import datetime
+  with sqlite3.connect(':memory:') as db:
+   original=[('facebook','q','digest','delivery_total_v1','')]
+   run(db,'dummy',original,lambda *args:None)
+   db.execute("UPDATE requests SET attempted_at=?",((datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(hours=3)).isoformat(),));db.commit()
+   fresh=Candidates();fresh.available.add('facebook')
+   def api(path,token,payload=None):
+    if '/runs?' in path:return {'workflow_runs':[]}
+    if path.startswith('releases/tags/'):
+     import urllib.error
+     raise urllib.error.HTTPError('https://example.invalid',404,'missing',{},None)
+    self.fail('withdrawn request must not dispatch')
+   run(db,'dummy',fresh,api)
+   self.assertEqual(db.execute('SELECT state FROM requests').fetchone()[0],'withdrawn')

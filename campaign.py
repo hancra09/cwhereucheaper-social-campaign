@@ -658,8 +658,8 @@ def main():
     check_access_expiry(now)
     ensure_plans(now.date())
     if args.mode == 'preflight':
-        result=buffer('query { __schema { queryType { fields { name } } } }')
-        print('QUERY_FIELDS '+json.dumps([f['name'] for f in result['__schema']['queryType']['fields']]))
+        result=buffer('query { p: __type(name: \"Post\") { fields { name type { name kind ofType { name kind } } } } c: __type(name: \"Channel\") { fields { name type { name kind ofType { name kind } } } } }')
+        print('TYPE_FIELDS '+json.dumps(result))
         return
     if args.mode == 'growth-test':
         apply_growth_test(now)

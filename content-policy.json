@@ -1,4 +1,10 @@
 {
-  "preferred_themes": [],
-  "rule": "Keep balanced evergreen education until a weekly within-channel review has enough usable signals."
+  "review_date": "2026-11-15",
+  "preferred_themes": [
+    "checkout",
+    "planning",
+    "shopping-check",
+    "unit-price"
+  ],
+  "rule": "Use reviewed themes for at most two of five future slots; freeze existing plans."
 }

@@ -1,0 +1,50 @@
+{
+  "week_ending": "2026-11-15",
+  "preferred_themes": [
+    "checkout",
+    "planning",
+    "shopping-check",
+    "unit-price"
+  ],
+  "examples": [
+    {
+      "channel": "youtube",
+      "title": "The smaller pack can win",
+      "public_post": "https://www.youtube.com/shorts/6dMkl2CadT8",
+      "theme": "unit-price"
+    },
+    {
+      "channel": "youtube",
+      "title": "Bulk buying needs a use-by plan",
+      "public_post": "https://www.youtube.com/shorts/4eWAqhtu0Qc",
+      "theme": "planning"
+    },
+    {
+      "channel": "tiktok",
+      "title": "The five-rand price gap trap A five-rand lower shelf price can disappear at checkout. Illustrative example: R95 plus R40 delivery totals R135. R100 with free collection totals R100, before travel costs. Compare the full cost of getting it home. Start your next price check: https://www.cwhereucheaper.co.za/?utm_source=tiktok&utm_medium=organic_social&utm_campaign=30_day_shopping_tips&utm_content=20261108-pm AI narration and original motion graphics. #SouthAfrica #ShoppingTips #CwhereUcheaper",
+      "public_post": "https://www.tiktok.com/@cwhereucheaper.co/video/7705838889826553108?utm_campaign=tt4d_open_api&utm_source=7103819247981182978",
+      "theme": "checkout"
+    },
+    {
+      "channel": "tiktok",
+      "title": "Separate a want from a shopping need A shopping list can lose its shape when every aisle has an offer. Before adding an unplanned item, name the job it will do and when you will use it. If that answer is unclear, pause before checkout. Start your next price check: https://www.cwhereucheaper.co.za/?utm_source=tiktok&utm_medium=organic_social&utm_campaign=30_day_shopping_tips&utm_content=20261113-pm AI narration and illustrative AI product visuals. #SouthAfrica #ShoppingTips #CwhereUcheaper",
+      "public_post": "https://www.tiktok.com/@cwhereucheaper.co/video/7707694440797785365?utm_campaign=tt4d_open_api&utm_source=7103819247981182978",
+      "theme": "checkout"
+    },
+    {
+      "channel": "facebook",
+      "title": "A small bottle can have a smaller unit price",
+      "public_post": "https://www.facebook.com/reel/1600908645120567/",
+      "theme": "unit-price"
+    },
+    {
+      "channel": "facebook",
+      "title": "The five-rand price gap trap",
+      "public_post": "https://www.facebook.com/reel/1129318659685101/",
+      "theme": "shopping-check"
+    }
+  ],
+  "basis": "Within-channel post metrics, not measured website conversions",
+  "notes": "Early Buffer metrics can lag or be unavailable. Preserve variety; no raw metrics stored.",
+  "status": "signals_available"
+}

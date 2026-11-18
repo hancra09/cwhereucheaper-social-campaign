@@ -48,3 +48,17 @@ Newly prepared slots use the Owner-approved Heart female AI voice at0.97 speed, 
 Authoring runs in the existing public GitHub Actions runner using the same open-source voice family as Reels and the reviewed renderer. This replaces the old repetitive Reels cards without changing the application or using a paid text/voice/video API. The three-new-slots-per-SAST-day budget remains enforced. Re-editing already-created scheduled slots creates no extra slots and does not call or bypass the public Reels job quota. Normal publishing times, channel checks, exact-post-ID reconciliation and no-duplicate guards remain.
 
 `upgrade-creative` edits only exact live scheduled posts with at least20minutes lead, over the next48hours. IDs, dueAt and scheduled status must stay identical. Already published/sending/draft posts are never replaced. AI disclosures update alongside the media. Old MP4s remain in Releases; new `video-creative-v2.mp4` files and versioned public URLs prevent stale cached video delivery. Originals/provenance provide rollback evidence. The updater saves results after every channel change, and refuses uncertain render retries. Existing queued content is bound to its prior lesson facts.
+
+## Entertainment trial · 21 November 2026
+
+The three regular 21 November slots use original short shopping comedy with separate
+scene artwork, four voiced beats, and no spoken sales pitch or website end card.
+The delivery-fee reveal uses explicitly illustrative amounts. The other slots play
+as a kitchen courtroom skit and a cupboard POV. Captions retain the tracking URL
+and AI disclosure. The campaign sends each reel through the existing Buffer route
+to all three channels. Previously selected release content remains bound to its
+slot. The regular creative returns after the trial.
+
+Compare watch time and early retention, where available, against recent comparable
+posts on the same channel. Track each format separately. The automated weekly
+review currently reads reach and view metrics, which cannot verify retention.

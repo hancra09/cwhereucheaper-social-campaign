@@ -1,5 +1,6 @@
 """Approved Heart/photographic creative style; standalone cloud authoring, no paid API."""
 from pathlib import Path
+from entertainment import VERSION as ENTERTAINMENT_VERSION
 import json,math,re,hashlib,subprocess,os,shutil
 ROOT=Path(__file__).parent
 ASSETS=ROOT/'creative-assets'
@@ -96,6 +97,34 @@ def render(t):
   text(im,'Start your next price check.',(540,1585),42,GREY,False,'mm')
  progress(im,t,dark)
  return im
+
+
+def render_episode(t):
+ from PIL import ImageOps
+
+ cuts = NARRATION['cuts']
+ beat = next((i for i, end in enumerate(cuts[1:]) if t < end), len(cuts) - 2)
+ elapsed = t - cuts[beat]
+ framing = (1.04, 1.22, 1.12, 1.27)[beat] + min(elapsed, 3) * .012
+ focus = {'receipt': (.48, .42), 'court': (.56, .42), 'pov': (.48, .53)}
+ image = ImageOps.fit(pair, (round(W * framing), round(H * framing)), centering=focus[CFG['format']])
+ left = (image.width - W) // 2
+ top = (image.height - H) // 2
+ image = image.crop((left, top, left + W, top + H)).convert('RGB')
+ headline = CFG['beats'][beat][0]
+
+ if CFG['format'] == 'receipt':
+  rr(image, (90, 245, 980, 510), '#FFF6DF', 12)
+  wrapped(image, headline, (130, 290), 800, 180, 74, '#27201C')
+  if beat in (1, 2):
+   text(image, 'EXAMPLE TOTAL', (130, 444), 28, '#594D43', True)
+ elif CFG['format'] == 'court':
+  rr(image, (75, 1210, 1005, 1505), '#251B22', 18, '#E5B96D', 5)
+  wrapped(image, headline, (125, 1280), 830, 170, 74, '#FFE0A0')
+ else:
+  rr(image, (78, 236, 1002, 525), '#143A2C', 42)
+  wrapped(image, headline, (116, 290), 845, 195, 78, WHITE)
+ return image
 
 
 def progress(im,t,dark):
@@ -226,9 +255,12 @@ def narrate(cfg,work):
  parts=[];cuts=[0.0];rate=24000
  for segment in cfg['segments']:
   audio,rate=engine.create(spoken(segment),voice=VOICE,lang='en-us',speed=.97,sentence_pause=.29,clause_pause=.12)
-  audio=np.concatenate([np.zeros(int(rate*.12),dtype=np.float32),audio,np.zeros(int(rate*.22),dtype=np.float32)])
+  lead = .03 if cfg.get('beats') else .12
+  audio=np.concatenate([np.zeros(int(rate*lead),dtype=np.float32),audio,np.zeros(int(rate*.22),dtype=np.float32)])
   parts.append(audio);cuts.append(cuts[-1]+len(audio)/rate)
- if not 18<=cuts[-1]<=42:raise ValueError('Natural narration falls outside 18–42 seconds; manual script review required')
+ minimum, maximum = (6, 20) if cfg.get('beats') else (18, 42)
+ if not minimum <= cuts[-1] <= maximum:
+  raise ValueError(f'Natural narration falls outside {minimum}–{maximum} seconds; manual script review required')
  audio=np.concatenate(parts);peak=float(np.max(np.abs(audio)))
  if not .01<peak<3:raise ValueError('Invalid narration signal')
  audio*=.88/peak;sf.write(work/'narration.wav',audio,rate,subtype='PCM_16')
@@ -239,8 +271,14 @@ def render_video(item,tag,destination,work):
  global Image,ImageDraw,ImageFont,CFG,NARRATION,TOTAL,pair,left,right,web
  from PIL import Image,ImageDraw,ImageFont
  work=Path(work);work.mkdir(parents=True,exist_ok=True)
- CFG=lesson(item,tag);NARRATION=narrate(CFG,work);TOTAL=NARRATION['duration']
- pair=Image.open(ASSETS/CFG['asset']).convert('RGBA');split={'pouches.png':540,'bottles.png':515}.get(CFG['asset'],pair.width//2);left=pair.crop((0,0,split,pair.height));right=pair.crop((split,0,pair.width,pair.height));web=Image.open(ASSETS/'website.png').convert('RGB')
+ episode = item.get('creative_version') == ENTERTAINMENT_VERSION
+ if episode:
+  CFG = {**item, 'segments': [line for _, line in item['beats']]}
+ else:
+  CFG = lesson(item,tag)
+ NARRATION=narrate(CFG,work);TOTAL=NARRATION['duration']
+ pair=Image.open(ASSETS/CFG['asset']).convert('RGB' if episode else 'RGBA')
+ split={'pouches.png':540,'bottles.png':515}.get(CFG['asset'],pair.width//2);left=pair.crop((0,0,split,pair.height));right=pair.crop((split,0,pair.width,pair.height));web=Image.open(ASSETS/'website.png').convert('RGB')
  ff=shutil.which('ffmpeg')
  if not ff:
   import imageio_ffmpeg
@@ -248,10 +286,10 @@ def render_video(item,tag,destination,work):
  cmd=[ff,'-y','-v','error','-f','rawvideo','-pix_fmt','rgb24','-s','1080x1920','-r','30','-i','-','-i',str(work/'narration.wav'),'-map','0:v','-map','1:a:0','-c:v','libx264','-preset','fast','-crf','19','-pix_fmt','yuv420p','-threads','2','-c:a','aac','-b:a','160k','-t',str(TOTAL),'-movflags','+faststart',str(destination)]
  proc=subprocess.Popen(cmd,stdin=subprocess.PIPE)
  for old in work.glob('preview-*.jpg'):old.unlink()
- preview_frames={round((NARRATION['cuts'][i]+NARRATION['cuts'][i+1])/2*30) for i in range(6)}
+ preview_frames={round((start + end) / 2 * 30) for start, end in zip(NARRATION['cuts'], NARRATION['cuts'][1:])}
  try:
   for i in range(round(TOTAL*30)):
-   im=render(i/30)
+   im = render_episode(i / 30) if episode else render(i / 30)
    if i in preview_frames:im.save(work/f'preview-{i:04d}.jpg',quality=92)
    proc.stdin.write(im.tobytes())
  finally:proc.stdin.close()
@@ -261,6 +299,9 @@ def render_video(item,tag,destination,work):
  for i,f in enumerate(sorted(work.glob('preview-*.jpg'))):sheet.paste(Image.open(f).resize((270,480)),((i%3)*270,(i//3)*480))
  sheet.save(work/'contact-sheet.jpg',quality=94)
  meta={**NARRATION,'creative_version':VERSION,'visual_mode':'product photography, animated comparisons and website demonstration','visual_asset':CFG['asset'],'width':1080,'height':1920,'fps':30,'bytes':Path(destination).stat().st_size,'sha256':hashlib.sha256(Path(destination).read_bytes()).hexdigest(),'site_capture_date':'2026-11-12','ai_visual_disclosure':True,'warnings':[]}
+ if episode:
+  meta.update(creative_version=ENTERTAINMENT_VERSION, visual_mode=CFG['format'])
+  meta.pop('site_capture_date')
  (work/'creative-result.json').write_text(json.dumps(meta,indent=2)+'\n');return meta
 
 

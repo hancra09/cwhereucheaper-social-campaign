@@ -14,6 +14,21 @@ class CreativeSafety(unittest.TestCase):
     self.assertEqual(' '.join(cfg['facts']).split()[:len(cfg['core'].split())],cfg['core'].split(), item['title'])
     self.assertEqual(cfg['segments'][1:4],cfg['facts'])
    self.assertEqual(len(cfg['segments']),6)
+ def test_entertainment_trial_has_distinct_art_and_auditable_captions(self):
+  day = dt.date(2026, 11, 21)
+  items = [c.scheduled_item(day, slot) for slot in c.SLOTS]
+  self.assertEqual(len({item['format'] for item in items}), 3)
+  self.assertEqual(len({item['asset'] for item in items}), 3)
+  for item in items:
+   self.assertEqual(item['creative_version'], 'creative-v3')
+   self.assertTrue((e.ASSETS / item['asset']).is_file())
+   tag = f"20261121-{item['slot']}"
+   caption = c.caption(item, 'tiktok', tag)
+   self.assertIn('utm_content=' + tag + '\n', caption)
+   self.assertNotIn('Start your next price check', caption)
+   self.assertEqual(c.campaign_posts([{'text': caption}]), [{'text': caption}])
+  self.assertNotIn('creative_version', c.campaign_item(day + dt.timedelta(days=1), 'early'))
+
  def test_rand_pronunciation_preserves_currency_amount(self):
   self.assertEqual(e.spoken('R30 for 500 grams and R9.99 delivery.'),'thirty rand for 500 grams and nine rand and ninety-nine cents delivery.')
  def test_hundred_gram_example_has_reviewed_math(self):

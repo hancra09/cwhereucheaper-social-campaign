@@ -13,6 +13,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from content_factory import build_month, theme_for, validate_plan
+from entertainment import VERSION as ENTERTAINMENT_VERSION, trial_item
 from media_delivery import publish as publish_delivery
 
 SAST = dt.timezone(dt.timedelta(hours=2))
@@ -49,6 +50,10 @@ def campaign_item(day, slot):
     offset = (day - START).days
     # Preserve the original am/pm mapping and all previously queued captions.
     return third[offset] if slot == 'early' else items[offset * 2 + (slot == 'pm')]
+
+
+def scheduled_item(day, slot):
+    return trial_item(day, slot) or campaign_item(day, slot)
 
 
 def scheduled_slot(now):
@@ -176,7 +181,7 @@ def generate(item, release, ledger):
     existing = next((a for a in release['assets'] if a['name'] == 'video.mp4'), None)
     if existing:
         return existing['browser_download_url']
-    if item.get('creative_version') == 'creative-v2':
+    if item.get('creative_version') in ('creative-v2', ENTERTAINMENT_VERSION):
         return creative_asset(item, release, ledger, new_slot=True)[0]
     if ledger.get('render_attempted'):
         raise RuntimeError('Previous render attempt has no stored media. Review before retrying; no duplicate quota use.')
@@ -239,17 +244,19 @@ def upload_creative_file(release, name, data, mime):
 
 
 def creative_asset(item, release, ledger, *, new_slot=False):
-    filename = 'video-creative-v2.mp4'
+    version = item['creative_version']
+    filename = f'video-{version}.mp4'
+    metadata_name = f'{version}.json'
     existing = next((a for a in release.get('assets', []) if a['name'] == filename), None)
     if existing:
-        metadata_asset = next((a for a in release['assets'] if a['name'] == 'creative-v2.json'), None)
+        metadata_asset = next((a for a in release['assets'] if a['name'] == metadata_name), None)
         if not metadata_asset:
             raise RuntimeError('Creative video lacks reviewed provenance; refusing to publish.')
         metadata = json.loads(subprocess.check_output(['gh','release','download',ledger['slot'],'--repo',REPO,
-            '--pattern','creative-v2.json','--output','-'], stderr=subprocess.PIPE, timeout=60))
+            '--pattern',metadata_name,'--output','-'], stderr=subprocess.PIPE, timeout=60))
         if existing.get('digest') and existing['digest'] != 'sha256:'+metadata.get('sha256',''):
             raise RuntimeError('Creative video checksum differs from reviewed provenance')
-        if metadata.get('voice') != 'af_heart' or metadata.get('creative_version') != 'creative-v2':
+        if metadata.get('voice') != 'af_heart' or metadata.get('creative_version') != version:
             raise RuntimeError('Creative provenance does not match approved voice/style')
         return existing['browser_download_url'], metadata
     if ledger.get('creative_attempted'):
@@ -265,8 +272,8 @@ def creative_asset(item, release, ledger, *, new_slot=False):
         work = Path(directory); video = work / filename
         metadata = render_video(item, ledger['slot'], video, work)
         asset = upload_creative_file(release, filename, video.read_bytes(), 'video/mp4')
-        upload_creative_file(release, 'creative-v2.json', json.dumps(metadata, indent=2).encode(), 'application/json')
-        upload_creative_file(release, 'creative-v2-contact-sheet.jpg', (work/'contact-sheet.jpg').read_bytes(), 'image/jpeg')
+        upload_creative_file(release, metadata_name, json.dumps(metadata, indent=2).encode(), 'application/json')
+        upload_creative_file(release, f'{version}-contact-sheet.jpg', (work/'contact-sheet.jpg').read_bytes(), 'image/jpeg')
     ledger['creative_video'] = asset['browser_download_url']
     ledger['creative_result'] = metadata
     if new_slot:
@@ -300,7 +307,7 @@ def upgrade_creative(now):
             tag = day.strftime('%Y%m%d')+'-'+slot
             release = read_release(tag)
             ledger = json.loads(release['body'] or '{}') if release else {}
-            if not ledger.get('posts'):
+            if not ledger.get('posts') or ledger.get('content', {}).get('creative_version') == ENTERTAINMENT_VERSION:
                 continue
             current = {}
             for service, channel in CHANNELS.items():
@@ -412,6 +419,12 @@ def existing_posts(*, now=None, metrics=False):
 
 
 def caption(item, service, tag):
+    if item.get('creative_version') == ENTERTAINMENT_VERSION:
+        tracking = f'{ORIGIN}/?utm_source={service}&utm_medium=organic_social&utm_campaign=entertainment_trial&utm_content={tag}'
+        disclosure = 'AI narration and illustrative visuals.'
+        if item['format'] == 'receipt':
+            disclosure = 'Illustrative prices. ' + disclosure
+        return f"{item['title']}\n\n{item['caption']}\n{tracking}\n{disclosure} #SouthAfrica"
     campaign = 'evergreen_shopping_tips' if item.get('date', '') > LEGACY_END.isoformat() else '30_day_shopping_tips'
     link = ORIGIN + '/?utm_source=' + service + '&utm_medium=organic_social&utm_campaign=' + campaign + '&utm_content=' + tag
     disclosure = 'AI narration and illustrative AI product visuals.' if item.get('creative_version') == 'creative-v2' else 'AI narration and original motion graphics.'
@@ -419,7 +432,7 @@ def caption(item, service, tag):
 
 
 def run(day, slot, *, now, immediate=False, preflight=False, request_item=None):
-    item = request_item or campaign_item(day, slot)
+    item = request_item or scheduled_item(day, slot)
     due = dt.datetime.combine(day, SLOTS[slot], SAST)
     if immediate:
         assert os.environ.get('ALLOW_SMOKE') == '1' and day == START and slot == 'am' and now.date() == dt.date(2026, 11, 7)
@@ -442,7 +455,7 @@ def run(day, slot, *, now, immediate=False, preflight=False, request_item=None):
     # Bind later retries to the content first selected for this slot.
     item = ledger.get('content', item)
     if not ledger.get('video') and not ledger.get('render_attempted') and not ledger.get('posts'):
-        item = {**item, 'creative_version': 'creative-v2'}
+        item = {**item, 'creative_version': item.get('creative_version', 'creative-v2')}
     ledger['content'] = item
     ledger.update({'slot': tag, 'title': item['title'], 'due_sast': due.isoformat() if not immediate else now.isoformat(), 'posts': ledger.get('posts', {})})
     video = ledger.get('video') or generate(item, release, ledger)
@@ -540,7 +553,7 @@ def refresh_media(now):
 
 def campaign_posts(posts):
     return [p for p in posts if any('utm_campaign=' + name in p['text']
-        for name in ('30_day_shopping_tips', 'evergreen_shopping_tips'))]
+        for name in ('30_day_shopping_tips', 'evergreen_shopping_tips', 'entertainment_trial'))]
 
 
 def future_slots(now):
@@ -568,7 +581,7 @@ def prepare_ahead(now):
         tag = day.strftime('%Y%m%d') + '-' + slot
         release = read_release(tag)
         ledger = json.loads(release['body'] or '{}') if release else {}
-        item = ledger.get('content') or campaign_item(day, slot)
+        item = ledger.get('content') or scheduled_item(day, slot)
         matches = {service: [p for p in posts if p['channelId'] == channel
                    and p['text'] == caption(item, service, tag)]
                    for service, channel in CHANNELS.items()}

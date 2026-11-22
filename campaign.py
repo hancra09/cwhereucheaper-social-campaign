@@ -260,13 +260,16 @@ def creative_asset(item, release, ledger, *, new_slot=False):
         if metadata.get('voice') != 'af_heart' or metadata.get('creative_version') != version:
             raise RuntimeError('Creative provenance does not match approved voice/style')
         return existing['browser_download_url'], metadata
-    if ledger.get('creative_attempted'):
+    # A stale attempt from a previous creative version must not keep the approved
+    # replacement format attached to an old incomplete render forever.
+    if ledger.get('creative_attempted') and ledger.get('creative_attempt_version') == version:
         raise RuntimeError('Previous creative edit has no stored result; review rather than looping renders.')
     if new_slot:
         reserve_render(ledger['slot'], dt.datetime.now(SAST))
         ledger['render_attempted'] = True
     # Editing an existing scheduled slot adds no new slot or Reels-service job.
     ledger['creative_attempted'] = True
+    ledger['creative_attempt_version'] = version
     save(release, ledger)
     from creative_engine import render_video
     with tempfile.TemporaryDirectory(prefix='cwuc-creative-') as directory:

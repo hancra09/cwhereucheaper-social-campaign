@@ -1,0 +1,50 @@
+{
+  "week_ending": "2026-11-23",
+  "preferred_themes": [
+    "checkout",
+    "offers",
+    "shopping-check",
+    "unit-price"
+  ],
+  "examples": [
+    {
+      "channel": "youtube",
+      "title": "Split baskets need two delivery checks",
+      "public_post": "https://www.youtube.com/shorts/eDP-Bq8ocAk",
+      "theme": "checkout"
+    },
+    {
+      "channel": "youtube",
+      "title": "The ten-percent calculation",
+      "public_post": "https://www.youtube.com/shorts/StJ6HYozi8M",
+      "theme": "shopping-check"
+    },
+    {
+      "channel": "tiktok",
+      "title": "One hundred millilitres at a time Illustrative example: R24 for 400 millilitres is R6 per hundred millilitres. R35 for 500 millilitres is R7 per hundred millilitres. Unit prices make different sizes easier to compare when the products are equivalent. Start your next price check: https://www.cwhereucheaper.co.za/?utm_source=tiktok&utm_medium=organic_social&utm_campaign=30_day_shopping_tips&utm_content=20261118-am AI narration and illustrative AI product visuals. #SouthAfrica #ShoppingTips #CwhereUcheaper",
+      "public_post": "https://www.tiktok.com/@cwhereucheaper.co/video/7709456691691064628?utm_campaign=tt4d_open_api&utm_source=7103819247981182978",
+      "theme": "unit-price"
+    },
+    {
+      "channel": "tiktok",
+      "title": "Refill packs need a fair comparison A refill pouch can look cheaper because the sticker price is lower. Match the product and compare the price per millilitre. Check whether you need to buy a separate container. Packaging style alone does not settle the value question. Start your next price check: https://www.cwhereucheaper.co.za/?utm_source=tiktok&utm_medium=organic_social&utm_campaign=30_day_shopping_tips&utm_content=20261117-am AI narration and illustrative AI product visuals. #SouthAfrica #ShoppingTips #CwhereUcheaper",
+      "public_post": "https://www.tiktok.com/@cwhereucheaper.co/video/7709085603488435457?utm_campaign=tt4d_open_api&utm_source=7103819247981182978",
+      "theme": "unit-price"
+    },
+    {
+      "channel": "facebook",
+      "title": "A bundle can cost more per item",
+      "public_post": "https://www.facebook.com/reel/1719579119526755/",
+      "theme": "offers"
+    },
+    {
+      "channel": "facebook",
+      "title": "The old receipt is a clue",
+      "public_post": "https://www.facebook.com/reel/1114650548067600/",
+      "theme": "shopping-check"
+    }
+  ],
+  "basis": "Within-channel post metrics, not measured website conversions",
+  "notes": "Early Buffer metrics can lag or be unavailable. Preserve variety; no raw metrics stored.",
+  "status": "signals_available"
+}

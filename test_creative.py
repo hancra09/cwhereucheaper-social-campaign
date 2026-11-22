@@ -20,7 +20,7 @@ class CreativeSafety(unittest.TestCase):
   self.assertEqual(len({item['format'] for item in items}), 3)
   self.assertEqual(len({item['asset'] for item in items}), 3)
   for item in items:
-   self.assertEqual(item['creative_version'], 'creative-v3')
+   self.assertEqual(item['creative_version'], 'creative-v4')
    self.assertTrue((e.ASSETS / item['asset']).is_file())
    self.assertEqual(item['beats'][-1][0], 'CHECK BEFORE YOU BUY')
    self.assertIn('CWhereUCheaper.co.za', item['beats'][-1][1])
@@ -30,7 +30,7 @@ class CreativeSafety(unittest.TestCase):
    self.assertNotIn('Start your next price check', caption)
    self.assertEqual(c.campaign_posts([{'text': caption}]), [{'text': caption}])
   tomorrow = c.scheduled_item(day + dt.timedelta(days=1), 'early')
-  self.assertEqual(tomorrow['creative_version'], 'creative-v3')
+  self.assertEqual(tomorrow['creative_version'], 'creative-v4')
   self.assertNotEqual(items[0]['script'], tomorrow['script'])
 
  def test_rand_pronunciation_preserves_currency_amount(self):
@@ -66,7 +66,38 @@ class CreativeSafety(unittest.TestCase):
  def test_upgrade_refuses_already_published_posts(self):
   tag,url,posts,release,api=self.upgrade_fixture('sent')
   with patch.object(c,'buffer',side_effect=api) as mutation,patch.object(c,'existing_posts',return_value=posts),patch.object(c,'read_release',side_effect=lambda t:release if t==tag else None),patch.object(c,'creative_asset') as render:
-   with self.assertRaisesRegex(RuntimeError,'exact live scheduled'):c.upgrade_creative(dt.datetime(2026,11,12,6,tzinfo=c.SAST))
+   c.upgrade_creative(dt.datetime(2026,11,12,6,tzinfo=c.SAST))
    render.assert_not_called();self.assertEqual(mutation.call_count,1)
+
+ def test_three_queue_repairs_have_distinct_product_art_and_facts(self):
+  sunday, monday = dt.date(2026,11,22), dt.date(2026,11,23)
+  items = [c.scheduled_item(sunday,'am'), c.scheduled_item(monday,'early'), c.scheduled_item(monday,'am')]
+  self.assertEqual([item['asset'] for item in items], ['pouches.png','bottles.png','receipt.jpg'])
+  self.assertEqual(len({line for item in items for _, line in item['beats'][:-1]}),12)
+  self.assertTrue(all(item['beats'][-1][1].endswith('before your next checkout.') for item in items))
+  self.assertIn('R54 divided by six is R9 each.',items[2]['script'])
+  self.assertIn('R8 in this example',items[2]['script'])
+  self.assertNotIn('I came for do the division',items[2]['script'])
+
+ def test_previous_mini_story_caption_stays_reconcilable(self):
+  item = {'title':'Old title','caption':'Old caption. What would you check first?',
+          'creative_version':'creative-v3','format':'pov'}
+  text = c.caption(item, 'tiktok', '20261122-am')
+  self.assertIn('utm_campaign=retention_first_story',text)
+  self.assertIn('Old caption. What would you check first?',text)
+
+ def test_upgrade_does_not_edit_when_post_started_while_rendering(self):
+  tag,url,posts,release,api=self.upgrade_fixture()
+  changed=[dict(x,status='sending') for x in posts]
+  with patch.object(c,'buffer',side_effect=api) as mutation,patch.object(c,'existing_posts',side_effect=[posts,changed]),patch.object(c,'read_release',side_effect=lambda t:release if t==tag else None),patch.object(c,'creative_asset',return_value=('new',{'voice':'af_heart'})),patch.object(c,'delivery_url',return_value=url),patch.object(c,'save') as persist:
+   c.upgrade_creative(dt.datetime(2026,11,12,6,tzinfo=c.SAST),only_slots={tag})
+  self.assertEqual(mutation.call_count,1)
+  self.assertNotIn('creative_version',persist.call_args.args[1]['content'])
+
+ def test_upgrade_filters_requested_slots(self):
+  tag,url,posts,release,api=self.upgrade_fixture()
+  with patch.object(c,'buffer',side_effect=api) as mutation,patch.object(c,'existing_posts',return_value=posts),patch.object(c,'read_release') as lookup:
+   c.upgrade_creative(dt.datetime(2026,11,12,6,tzinfo=c.SAST),only_slots=set())
+  lookup.assert_not_called();self.assertEqual(mutation.call_count,1)
 
 if __name__=='__main__':unittest.main()

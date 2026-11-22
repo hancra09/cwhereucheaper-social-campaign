@@ -295,7 +295,8 @@ def native_metadata(service, item):
         'categoryId': '27', 'privacy': 'public', 'madeForKids': False, 'notifySubscribers': True}}
 
 
-def upgrade_creative(now):
+def upgrade_creative(now, *, only_slots=None):
+    started = time.monotonic()
     channels = buffer('query($id:OrganizationId!){channels(input:{organizationId:$id}){id name service serviceId}}', {'id': ORG})['channels']
     assert {c['service']:c['id'] for c in channels} == CHANNELS, 'Connected channel identity changed'
     assert next(c['serviceId'] for c in channels if c['service']=='facebook') == FACEBOOK_PAGE_ID, 'Facebook Page identity changed'
@@ -309,6 +310,8 @@ def upgrade_creative(now):
             if not now+dt.timedelta(minutes=20) <= due <= latest:
                 continue
             tag = day.strftime('%Y%m%d')+'-'+slot
+            if only_slots is not None and tag not in only_slots:
+                continue
             release = read_release(tag)
             ledger = json.loads(release['body'] or '{}') if release else {}
             if not ledger.get('posts') or ledger.get('content', {}).get('creative_version') == ENTERTAINMENT_VERSION:
@@ -317,21 +320,39 @@ def upgrade_creative(now):
             for service, channel in CHANNELS.items():
                 recorded = ledger['posts'].get(service)
                 matches = [p for p in posts if recorded and p['id']==recorded['id'] and p['channelId']==channel]
-                if len(matches)!=1 or matches[0]['status']!='scheduled':
-                    raise RuntimeError('Upgrade requires exact live scheduled post: '+tag+'/'+service)
+                if (len(matches)!=1 or matches[0]['status']!='scheduled'
+                        or matches[0]['dueAt'] != recorded.get('dueAt')):
+                    print('CREATIVE SKIP: exact live scheduled post not verified: '+tag+'/'+service, flush=True)
+                    continue
                 current[service]=matches[0]
+            if not current:
+                continue
+            # Keep custom viewer-response and trial content intact.
+            if ledger.get('growth_test') or ledger.get('growth_test_pending') or ledger['content'].get('response_request_id'):
+                continue
             # Replace each still-scheduled legacy card with its same-slot mini-story.
             item = scheduled_item(day, slot)
             source, metadata = creative_asset(item, release, ledger)
             url = delivery_url(tag, source, now)
             ledger.setdefault('creative_previous', {'content': ledger['content'], 'video':ledger.get('video'), 'delivery_video':ledger.get('delivery_video')})
-            ledger['content']=item
             ledger['creative_video']=source; ledger['creative_result']=metadata
-            ledger['creative_version']=ENTERTAINMENT_VERSION
             save(release, ledger)
-            for service, before in current.items():
+            # Reconcile after rendering; never edit an item that started publishing meanwhile.
+            live_now = now + dt.timedelta(seconds=time.monotonic() - started)
+            if due < live_now + dt.timedelta(minutes=20):
+                print('CREATIVE SKIP: lead time elapsed while preparing '+tag, flush=True)
+                continue
+            refreshed = {p['id']:p for p in existing_posts(now=live_now)}
+            completed = set()
+            for service, prior in current.items():
+                before = refreshed.get(prior['id'])
+                if not before or any(before[k]!=prior[k] for k in ('id','channelId','dueAt','status')):
+                    print('CREATIVE SKIP: post changed while preparing '+tag+'/'+service, flush=True)
+                    continue
                 expected_text=caption(item, service, tag)
                 if before['text']==expected_text and any(a.get('source')==url for a in before.get('assets', [])):
+                    ledger['posts'][service]=before
+                    completed.add(service)
                     continue
                 result=buffer('mutation($input:EditPostInput!){editPost(input:$input){... on PostActionSuccess{post{'+POST_FIELDS+'}} ... on MutationError{message}}}',
                     {'input':{'id':before['id'],'text':expected_text,'assets':[{'video':{'url':url}}], 'metadata':native_metadata(service,item)}})['editPost']
@@ -342,10 +363,14 @@ def upgrade_creative(now):
                 if after['text']!=expected_text or not any(a.get('source')==url for a in after.get('assets', [])):
                     raise RuntimeError('Creative attachment/text not retained: '+tag+'/'+service)
                 ledger['posts'][service]=after;save(release,ledger)
+                completed.add(service)
                 print('CREATIVE UPGRADE scheduled: '+tag+'/'+service+'/'+after['id'], flush=True)
                 changed.append({'slot':tag,'service':service,'id':after['id'],'dueAt':after['dueAt']})
-            ledger['delivery_video']=url
-            save(release,ledger)
+            if completed == set(CHANNELS):
+                ledger['content']=item
+                ledger['creative_version']=ENTERTAINMENT_VERSION
+                ledger['delivery_video']=url
+                save(release,ledger)
         day+=dt.timedelta(days=1)
     print(json.dumps({'creative_version':ENTERTAINMENT_VERSION,'updated_posts':changed},indent=2))
 
@@ -424,7 +449,7 @@ def existing_posts(*, now=None, metrics=False):
 
 
 def caption(item, service, tag):
-    if item.get('creative_version') == ENTERTAINMENT_VERSION:
+    if item.get('creative_version') in ('creative-v3', ENTERTAINMENT_VERSION):
         tracking = f'{ORIGIN}/?utm_source={service}&utm_medium=organic_social&utm_campaign=retention_first_story&utm_content={tag}'
         disclosure = 'AI narration and illustrative visuals.'
         if item['format'] == 'receipt':
@@ -829,6 +854,11 @@ def main():
     args = p.parse_args()
     now = dt.datetime.now(SAST)
     check_access_expiry(now)
+    activation = ROOT / '.campaign-activate'
+    if (args.mode == 'scheduled' and os.environ.get('GITHUB_EVENT_NAME') == 'push'
+            and activation.is_file() and activation.read_text().strip() == 'upgrade-only:20261122-v4'):
+        upgrade_creative(now, only_slots={'20261122-am', '20261123-early', '20261123-am'})
+        return
     ensure_plans(now.date())
     if args.mode == 'viewer-response':
         prepare_request(now,args.request_topic,args.request_id,args.request_subject,args.request_origin)

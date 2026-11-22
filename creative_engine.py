@@ -99,6 +99,50 @@ def render(t):
  return im
 
 
+def story_cutaway(headline, beat):
+ from PIL import ImageOps
+ colors={'receipt':('#FFF6DF','#392923'),'court':('#281E2D','#FFE0A0'),'pov':('#12382D','#F4FFEC')}
+ bg,ink=colors[CFG['format']]
+ image=Image.new('RGB',(W,H),bg)
+ header_word='THE CHECK' if beat in (1,2) else 'THE TAKEAWAY'
+ text(image,header_word,(90,318),53,ink,True)
+ wrapped(image,headline,(90,438),900,365,112,ink)
+ if CFG['asset'] in {'pouches.png','bottles.png'}:
+  subject=(left if beat==1 else right) if beat<3 else pair
+  shot=ImageOps.contain(subject,(875,690),Image.Resampling.LANCZOS).convert('RGB')
+  image.paste(shot,((W-shot.width)//2,865+(645-shot.height)//2))
+ else:
+  draw=ImageDraw.Draw(image)
+  stroke='#655846' if CFG['format']=='receipt' else '#F4D58D'
+  if CFG['format']=='receipt':
+   rr(image,(190,845,890,1400),'#FFFCF3',22,stroke,6)
+   for y,w in ((990,470),(1100,375),(1210,510)):
+    draw.line((285,y,285+w,y),fill=stroke,width=10)
+  else:
+   rr(image,(230,870,850,1380),bg,70,stroke,6)
+   if CFG['format']=='court':
+    draw.line((325,1125,755,1125),fill=stroke,width=12)
+    draw.line((540,955,540,1280),fill=stroke,width=12)
+    for x in (385,695):
+     draw.arc((x-48,1080,x+48,1250),0,180,fill=stroke,width=9)
+   else:
+    draw.line([(372,1082),(500,1210),(720,996)],fill=stroke,width=21,joint='curve')
+ return image
+
+
+def story_disclosure(image):
+ if CFG.get('synthetic_test'):
+  rr(image,(90,135,990,225),'#8B2438',20)
+  text(image,'SIMULATED VIEWER REQUEST',(540,180),44,WHITE,True,'mm')
+ elif CFG.get('is_price_evidence'):
+  rr(image,(90,135,990,225),NAVY,20)
+  text(image,'PRICE CHECK • ILLUSTRATIVE VISUALS',(540,180),38,WHITE,True,'mm')
+ elif CFG.get('is_example'):
+  rr(image,(90,135,990,225),NAVY,20)
+  text(image,'ILLUSTRATIVE EXAMPLE',(540,180),44,WHITE,True,'mm')
+ return image
+
+
 def render_episode(t):
  from PIL import ImageOps
 
@@ -114,7 +158,9 @@ def render_episode(t):
   text(image, 'cwhereucheaper.co.za', (540, 1305), 52, NAVY, True, 'mm')
   text(image, 'See where you cheaper.', (540, 1500), 48, WHITE, False, 'mm')
   progress(image, t, True)
-  return image
+  return story_disclosure(image)
+ if beat and CFG.get('scene_cuts'):
+  return story_disclosure(story_cutaway(CFG['beats'][beat][0],beat))
  elapsed = t - cuts[beat]
  framing = (1.04, 1.22, 1.12, 1.27)[beat] + min(elapsed, 3) * .012
  focus = {'receipt': (.48, .42), 'court': (.56, .42), 'pov': (.48, .53)}
@@ -127,7 +173,7 @@ def render_episode(t):
  if CFG['format'] == 'receipt':
   rr(image, (90, 245, 980, 510), '#FFF6DF', 12)
   wrapped(image, headline, (130, 290), 800, 180, 74, '#27201C')
-  if beat in (1, 2):
+  if beat in (1, 2) and CFG.get('is_example', True):
    text(image, 'EXAMPLE TOTAL', (130, 444), 28, '#594D43', True)
  elif CFG['format'] == 'court':
   rr(image, (75, 1210, 1005, 1505), '#251B22', 18, '#E5B96D', 5)
@@ -135,7 +181,7 @@ def render_episode(t):
  else:
   rr(image, (78, 236, 1002, 525), '#143A2C', 42)
   wrapped(image, headline, (116, 290), 845, 195, 78, WHITE)
- return image
+ return story_disclosure(image)
 
 
 def progress(im,t,dark):
@@ -311,7 +357,9 @@ def render_video(item,tag,destination,work):
  sheet.save(work/'contact-sheet.jpg',quality=94)
  meta={**NARRATION,'creative_version':VERSION,'visual_mode':'product photography, animated comparisons and website demonstration','visual_asset':CFG['asset'],'width':1080,'height':1920,'fps':30,'bytes':Path(destination).stat().st_size,'sha256':hashlib.sha256(Path(destination).read_bytes()).hexdigest(),'site_capture_date':'2026-11-12','ai_visual_disclosure':True,'warnings':[]}
  if episode:
-  meta.update(creative_version=ENTERTAINMENT_VERSION, visual_mode=CFG['format'])
+  meta.update(creative_version=ENTERTAINMENT_VERSION, visual_mode=CFG['format'],
+              creative_policy=CFG.get('creative_policy'), opening_asset=CFG['asset'],
+              storyboard=[heading for heading,_ in CFG['beats']])
   meta.pop('site_capture_date')
  (work/'creative-result.json').write_text(json.dumps(meta,indent=2)+'\n');return meta
 

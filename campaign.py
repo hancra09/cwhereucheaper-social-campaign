@@ -13,7 +13,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from content_factory import build_month, theme_for, validate_plan
-from entertainment import VERSION as ENTERTAINMENT_VERSION, episode_item
+from entertainment import VERSION as ENTERTAINMENT_VERSION, episode_item, fingerprint, select_opening
 from media_delivery import publish as publish_delivery
 
 SAST = dt.timezone(dt.timedelta(hours=2))
@@ -179,11 +179,11 @@ def save(release, ledger):
 
 
 def generate(item, release, ledger):
+    if item.get('creative_version') in ('creative-v2', ENTERTAINMENT_VERSION):
+        return creative_asset(item, release, ledger, new_slot=True)[0]
     existing = next((a for a in release['assets'] if a['name'] == 'video.mp4'), None)
     if existing:
         return existing['browser_download_url']
-    if item.get('creative_version') in ('creative-v2', ENTERTAINMENT_VERSION):
-        return creative_asset(item, release, ledger, new_slot=True)[0]
     if ledger.get('render_attempted'):
         raise RuntimeError('Previous render attempt has no stored media. Review before retrying; no duplicate quota use.')
     reserve_render(ledger['slot'], dt.datetime.now(SAST))
@@ -259,6 +259,11 @@ def creative_asset(item, release, ledger, *, new_slot=False):
             raise RuntimeError('Creative video checksum differs from reviewed provenance')
         if metadata.get('voice') != 'af_heart' or metadata.get('creative_version') != version:
             raise RuntimeError('Creative provenance does not match approved voice/style')
+        if new_slot and item.get('creative_policy') and (
+                metadata.get('creative_policy') != item['creative_policy']
+                or metadata.get('script_segments') != [line for _,line in item['beats']]
+                or metadata.get('opening_asset') != item['asset']):
+            raise RuntimeError('Archived video does not match the new story; no post created.')
         return existing['browser_download_url'], metadata
     # A stale attempt from a previous creative version must not keep the approved
     # replacement format attached to an old incomplete render forever.
@@ -452,8 +457,10 @@ def caption(item, service, tag):
     if item.get('creative_version') in ('creative-v3', ENTERTAINMENT_VERSION):
         tracking = f'{ORIGIN}/?utm_source={service}&utm_medium=organic_social&utm_campaign=retention_first_story&utm_content={tag}'
         disclosure = 'AI narration and illustrative visuals.'
-        if item['format'] == 'receipt':
-            disclosure = 'Illustrative prices. ' + disclosure
+        if item.get('is_example') or ('is_example' not in item and item['format'] == 'receipt'):
+            disclosure = 'Illustrative prices or examples. ' + disclosure if item.get('is_example') else 'Illustrative prices. ' + disclosure
+        if item.get('growth_hashtags'):
+            disclosure += ' ' + item['growth_hashtags']
         return f"{item['title']}\n\n{item['caption']}\n{tracking}\n{disclosure} #SouthAfrica"
     campaign = 'evergreen_shopping_tips' if item.get('date', '') > LEGACY_END.isoformat() else '30_day_shopping_tips'
     link = ORIGIN + '/?utm_source=' + service + '&utm_medium=organic_social&utm_campaign=' + campaign + '&utm_content=' + tag
@@ -488,7 +495,9 @@ def run(day, slot, *, now, immediate=False, preflight=False, request_item=None):
         item = {**item, 'creative_version': item.get('creative_version', 'creative-v2')}
     ledger['content'] = item
     ledger.update({'slot': tag, 'title': item['title'], 'due_sast': due.isoformat() if not immediate else now.isoformat(), 'posts': ledger.get('posts', {})})
-    video = ledger.get('video') or generate(item, release, ledger)
+    video = ledger.get('video')
+    if not video and (immediate or item.get('creative_version') == ENTERTAINMENT_VERSION):
+        video = generate(item, release, ledger)
     if item.get('evidence_product_id'):
         from product_response import research as product_research
         fresh=product_research(item['evidence_product_id'])
@@ -515,9 +524,16 @@ def run(day, slot, *, now, immediate=False, preflight=False, request_item=None):
         elif ledger.get('pending_service') == service:
             raise RuntimeError('Previous send has an uncertain result; refusing to retry without reconciliation.')
         else:
+            if not immediate and (not item.get('creative_policy')
+                                  or item.get('creative_version') != ENTERTAINMENT_VERSION or not video
+                                  or not video.endswith(f'/video-{ENTERTAINMENT_VERSION}.mp4')):
+                raise RuntimeError('Legacy or unverified video held; no new post created: '+tag)
             if not immediate:
-                video = ledger.get('delivery_video') or delivery_url(tag, ledger['video'], now)
-                ledger['delivery_video'] = video
+                cached = ledger.get('delivery_video') or ''
+                destination_video = cached if cached.endswith(f'/{tag}-{ENTERTAINMENT_VERSION}.mp4') else delivery_url(tag, video, now)
+                ledger['delivery_video'] = destination_video
+            else:
+                destination_video = video
             ledger['pending_service'] = service
             save(release, ledger)
             # Facebook requires its native Reel type and does not accept the
@@ -526,7 +542,7 @@ def run(day, slot, *, now, immediate=False, preflight=False, request_item=None):
             if service == 'youtube':
                 meta[service].update({'title': item['title'] + ' #Shorts', 'categoryId': '27',
                     'privacy': 'public', 'madeForKids': False, 'notifySubscribers': True})
-            inp = {'channelId': channel, 'text': text, 'assets': [{'video': {'url': video}}],
+            inp = {'channelId': channel, 'text': text, 'assets': [{'video': {'url': destination_video}}],
                 'metadata': meta, 'schedulingType': 'automatic', 'mode': 'shareNow' if immediate else 'customScheduled',
                 'needsApproval': False, 'aiAssisted': True}
             if not immediate:
@@ -598,6 +614,36 @@ def future_slots(now):
         day += dt.timedelta(days=1)
 
 
+def fresh_story(item, day, slot):
+    """Check the six preceding slots plus the nearest upcoming planned slot."""
+    slots = list(SLOTS)
+    index = day.toordinal()*len(slots) + slots.index(slot)
+    target = fingerprint(item)
+    recent_assets = set()
+    previous_found = False
+    for delta in (-1,-2,-3,-4,-5,-6,1):
+        day_index, offset = divmod(index+delta,len(slots))
+        neighbour = dt.date.fromordinal(day_index)
+        if neighbour < START:
+            continue
+        tag = neighbour.strftime('%Y%m%d')+'-'+slots[offset]
+        release = read_release(tag)
+        ledger = json.loads(release['body'] or '{}') if release else {}
+        content = ledger.get('content') or {}
+        if not content.get('script') or not content.get('title'):
+            continue
+        if not any(p.get('status') in ('scheduled','sending','sent') for p in ledger.get('posts',{}).values()):
+            continue
+        if any(left == right and left for left,right in zip(target,fingerprint(content))):
+            print('CREATIVE HOLD: idea, hook or script repeats '+tag, flush=True)
+            return None
+        if (delta == 1 or not previous_found) and content.get('asset'):
+            recent_assets.add(content['asset'])
+            if delta < 0:
+                previous_found = True
+    return select_opening(item,recent_assets)
+
+
 def prepare_ahead(now):
     """Fill one future slot. Never catch up a missed slot or exceed daily generation."""
     posts = existing_posts(now=now)
@@ -629,9 +675,22 @@ def prepare_ahead(now):
         if ledger.get('render_attempted') and not video_ready:
             print('::warning::Unresolved render retained for review; no repeat: ' + tag)
             continue
+        if video_ready and (not item.get('creative_policy') or item.get('creative_version') != ENTERTAINMENT_VERSION
+                            or not (ledger.get('video') or '').endswith(f'/video-{ENTERTAINMENT_VERSION}.mp4')):
+            print('CREATIVE HOLD: older media not reused for '+tag, flush=True)
+            continue
         if not video_ready and tag not in budget and len(budget) >= DAILY_RENDER_LIMIT:
             continue
-        run(day, slot, now=now)
+        if not video_ready and not ledger.get('posts'):
+            if not item.get('creative_policy'):
+                print('CREATIVE HOLD: unrendered older reservation '+tag, flush=True)
+                continue
+            item = fresh_story(item,day,slot)
+            if item is None:
+                continue
+            run(day, slot, now=now, request_item=item)
+        else:
+            run(day, slot, now=now)
         return True
     print('No safe future slot needs preparation within the current budget/horizon.')
     return False
@@ -679,13 +738,16 @@ def prepare_request(now, topic, request_id, subject="", origin=""):
             tag = day.strftime('%Y%m%d')+'-'+slot
             if any('utm_content='+tag+'\n' in p.get('text','') for p in posts) or read_release(tag):
                 continue
+            candidate = fresh_story(episode_item(item,day,slot),day,slot)
+            if candidate is None:
+                continue
             request_ledger.update({'topic':topic,'subject':subject,'origin':origin,'slot':tag,'state':'reserving'})
             save(request_release,request_ledger)
             slot_release = load_release(tag)
             slot_ledger = json.loads(slot_release['body'] or '{}')
             if slot_ledger:
                 raise RuntimeError('Slot became occupied; refusing overwrite')
-            slot_ledger.update({'slot':tag,'content':item,'response_request_id':request_id})
+            slot_ledger.update({'slot':tag,'content':candidate,'response_request_id':request_id})
             save(slot_release,slot_ledger)
             selected=tag
             break

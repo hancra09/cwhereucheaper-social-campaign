@@ -63,3 +63,20 @@ and due times remain unchanged, while their media and captions become the mini-s
 Compare watch time and early retention, where available, against recent comparable
 posts on the same channel. Track each format separately. The automated weekly
 review currently reads reach and view metrics, which cannot verify retention.
+
+## Fresh mini-stories for new campaign reels
+
+New scheduled videos and new sourced viewer responses use the mini-story renderer,
+the approved Heart narration and the CWhereUCheaper ending. Open on the shopping
+choice, then cut to different views of approved illustrative product art or a
+matching graphic instead of holding the same image for the whole video. Sourced
+price checks keep their evidence and distinguish illustrative visuals from prices.
+
+The nine newly authored stories are keyed to vetted lessons. Later lessons keep
+vetted facts and drop the shared stock hooks from the monthly plan. Before a new
+slot is selected, compare its idea, opening line and non-CTA narration with the six
+prior slots and the immediately following slot. Pick different opening art from
+its approved options when the nearest neighbouring creative would repeat, or hold
+the candidate. The asset library can be reused with spacing; this is not a claim
+of never-reused footage or unlimited new ideas. A stale video cannot create a new
+post via the old renderer. Existing scheduled IDs and times are not reset.

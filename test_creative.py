@@ -109,4 +109,73 @@ class CreativeSafety(unittest.TestCase):
    c.upgrade_creative(dt.datetime(2026,11,12,6,tzinfo=c.SAST),only_slots=set())
   lookup.assert_not_called();self.assertEqual(mutation.call_count,1)
 
+ def test_month_plans_produce_unique_spoken_bodies(self):
+  from content_factory import build_month
+  from entertainment import episode_item,fingerprint
+  for month in ('2026-12','2027-01','2027-02'):
+   plan=build_month(month)
+   stories=[episode_item(item,dt.date.fromisoformat(item['date']),item['slot']) for item in plan['items']]
+   self.assertEqual(len(stories),len({fingerprint(item)[2] for item in stories}))
+   self.assertTrue(all(2<=len(item['beats'])<=5 for item in stories))
+
+ def test_freshness_blocks_repeated_idea_even_when_words_change(self):
+  day=dt.date(2026,11,24)
+  target=c.scheduled_item(day,'am')
+  old=c.scheduled_item(dt.date(2026,11,23),'early')
+  self.assertNotEqual(target['script'],old['script'])
+  release={'body':json.dumps({'content':old,'posts':{'youtube':{'status':'scheduled'}}})}
+  with patch.object(c,'read_release',side_effect=lambda tag: release if tag=='20261123-early' else None):
+   self.assertIsNone(c.fresh_story(target,day,'am'))
+
+ def test_freshness_uses_other_approved_shot_when_previous_slot_missing(self):
+  day=dt.date(2026,11,25)
+  target=c.scheduled_item(day,'early')
+  old=c.scheduled_item(dt.date(2026,11,24),'am')
+  old['asset']=target['asset']
+  release={'body':json.dumps({'content':old,'posts':{'youtube':{'status':'scheduled'}}})}
+  with patch.object(c,'read_release',side_effect=lambda tag: release if tag=='20261124-am' else None):
+   result=c.fresh_story(target,day,'early')
+  self.assertIsNotNone(result)
+  self.assertNotEqual(result['asset'],old['asset'])
+  self.assertEqual(result['script'],target['script'])
+  self.assertIn((result['format'],result['asset']),target['visual_options'])
+
+ def test_distinct_scene_cutaway_uses_different_staged_subjects(self):
+  from PIL import Image,ImageDraw,ImageFont
+  item=c.scheduled_item(dt.date(2026,11,23),'early')
+  cfg={**item}
+  image=Image.new('RGB',(1030,1500),'#297cf0')
+  a=Image.new('RGB',(515,1500),'#e8242c')
+  b=Image.new('RGB',(515,1500),'#1adb62')
+  with patch.multiple(e,create=True,Image=Image,ImageDraw=ImageDraw,ImageFont=ImageFont,
+       CFG=cfg,NARRATION={'cuts':[0,2,4,6,8,10]},TOTAL=10,pair=image,left=a,right=b,web=image):
+   hook, first, second, end=[e.render_episode(at) for at in (.3,2.3,4.3,8.3)]
+  self.assertNotEqual(hook.getpixel((0,0)),first.getpixel((0,0)))
+  self.assertNotEqual(first.getpixel((540,1170)),second.getpixel((540,1170)))
+  self.assertNotEqual(second.getpixel((0,0)),end.getpixel((0,0)))
+
+ def test_viewer_script_keeps_actual_sourced_claims_with_new_ending(self):
+  from entertainment import episode_item,CTA
+  day=dt.date(2026,11,26)
+  item={'title':'R9.99: Example Juice','script':'A retailer listed Example Juice at R9.99. Delivery is extra.',
+        'caption':'Observed listing: https://example.com/a',
+        'evidence_product_id':'12','evidence_product':'Example Juice','evidence_price':'9.99',
+        'evidence_url':'https://example.com/a','response_request_id':'a'*32}
+  story=episode_item(item,day,'early')
+  self.assertIn(item['script'],story['script'])
+  self.assertEqual(story['caption'],item['caption'])
+  self.assertEqual(story['evidence_url'],item['evidence_url'])
+  self.assertEqual(story['beats'][-1],CTA)
+  self.assertTrue(story['is_price_evidence'])
+  self.assertNotIn('Illustrative prices.',c.caption(story,'youtube','20261126-early'))
+
+ def test_legacy_archive_cannot_create_fresh_post(self):
+  import datetime
+  release={'id':1,'body':json.dumps({'video':'https://example.com/video.mp4'}),'assets':[]}
+  channels=[{'service':s,'id':v,'serviceId':c.FACEBOOK_PAGE_ID if s=='facebook' else 'existing'} for s,v in c.CHANNELS.items()]
+  with patch.object(c,'buffer',return_value={'channels':channels}) as api,patch.object(c,'existing_posts',return_value=[]),patch.object(c,'load_release',return_value=release):
+   with self.assertRaisesRegex(RuntimeError,'Legacy or unverified'):
+    c.run(datetime.date(2026,11,25),'am',now=datetime.datetime(2026,11,25,6,tzinfo=c.SAST))
+  self.assertEqual(api.call_count,1)
+
 if __name__=='__main__':unittest.main()

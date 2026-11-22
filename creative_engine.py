@@ -104,6 +104,17 @@ def render_episode(t):
 
  cuts = NARRATION['cuts']
  beat = next((i for i, end in enumerate(cuts[1:]) if t < end), len(cuts) - 2)
+ if beat == len(CFG['beats']) - 1:
+  image = Image.new('RGB', (W, H), NAVY)
+  text(image, 'BEFORE YOU BUY', (540, 330), 76, WHITE, True, 'mm')
+  text(image, 'CHECK CWUC.', (540, 445), 96, YELLOW, True, 'mm')
+  shot = web.resize((860, 484), Image.Resampling.LANCZOS)
+  image.paste(shot, (110, 645))
+  rr(image, (96, 1235, 984, 1370), YELLOW, 60)
+  text(image, 'cwhereucheaper.co.za', (540, 1305), 52, NAVY, True, 'mm')
+  text(image, 'See where you cheaper.', (540, 1500), 48, WHITE, False, 'mm')
+  progress(image, t, True)
+  return image
  elapsed = t - cuts[beat]
  framing = (1.04, 1.22, 1.12, 1.27)[beat] + min(elapsed, 3) * .012
  focus = {'receipt': (.48, .42), 'court': (.56, .42), 'pov': (.48, .53)}
@@ -258,7 +269,7 @@ def narrate(cfg,work):
   lead = .03 if cfg.get('beats') else .12
   audio=np.concatenate([np.zeros(int(rate*lead),dtype=np.float32),audio,np.zeros(int(rate*.22),dtype=np.float32)])
   parts.append(audio);cuts.append(cuts[-1]+len(audio)/rate)
- minimum, maximum = (6, 20) if cfg.get('beats') else (18, 42)
+ minimum, maximum = (8, 24) if cfg.get('beats') else (18, 42)
  if not minimum <= cuts[-1] <= maximum:
   raise ValueError(f'Natural narration falls outside {minimum}–{maximum} seconds; manual script review required')
  audio=np.concatenate(parts);peak=float(np.max(np.abs(audio)))

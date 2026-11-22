@@ -73,7 +73,7 @@ class CampaignSafety(unittest.TestCase):
 
     def test_reconciles_both_posts_without_creating_duplicates(self):
         self.release['body']=json.dumps({'video':'https://example.com/public.mp4'})
-        item=json.loads(c.Path(c.__file__).with_name('content.json').read_text())[0]
+        item=c.scheduled_item(c.START,'am')
         posts=[{'id':s,'channelId':i,'status':'scheduled','text':c.caption(item,s,'20261108-am')} for s,i in c.CHANNELS.items()]
         with patch.object(c,'buffer',return_value={'channels':self.channels}) as api, patch.object(c,'existing_posts',return_value=posts), patch.object(c,'load_release',return_value=self.release), patch.object(c,'save') as save:
             c.run(c.START,'am',now=self.now)
@@ -238,7 +238,7 @@ class CampaignSafety(unittest.TestCase):
 
     def test_ahead_preparation_skips_already_queued_slot(self):
         now=dt.datetime(2026,11,8,10,tzinfo=c.SAST)
-        item=c.campaign_item(c.START,'am')
+        item=c.scheduled_item(c.START,'am')
         posts=[{'id':s,'channelId':i,'status':'scheduled',
                 'text':c.caption(item,s,'20261108-am')} for s,i in c.CHANNELS.items()]
         with patch.object(c,'existing_posts',return_value=posts), \

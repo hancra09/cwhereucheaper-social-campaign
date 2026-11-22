@@ -858,6 +858,9 @@ def main():
     if now.date() < START:
         print('Campaign inactive before 8 Nov 2026 SAST. No render or publish.')
         return
+    # Retire any remaining near-term legacy cards before preparing another slot.
+    # The updater only edits exact, still-scheduled posts and preserves their IDs/times.
+    upgrade_creative(now)
     # Preparation is independent of publication-time audit. A missed historical
     # slot still fails the separate audits but does not block future preparation.
     deadline = time.monotonic() + 24 * 60

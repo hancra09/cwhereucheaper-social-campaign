@@ -13,7 +13,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from content_factory import build_month, theme_for, validate_plan
-from entertainment import VERSION as ENTERTAINMENT_VERSION, trial_item
+from entertainment import VERSION as ENTERTAINMENT_VERSION, episode_item
 from media_delivery import publish as publish_delivery
 
 SAST = dt.timezone(dt.timedelta(hours=2))
@@ -53,7 +53,8 @@ def campaign_item(day, slot):
 
 
 def scheduled_item(day, slot):
-    return trial_item(day, slot) or campaign_item(day, slot)
+    # The approved retention-first mini-story format replaces the old card campaign.
+    return episode_item(campaign_item(day, slot), day, slot)
 
 
 def scheduled_slot(now):
@@ -316,13 +317,14 @@ def upgrade_creative(now):
                 if len(matches)!=1 or matches[0]['status']!='scheduled':
                     raise RuntimeError('Upgrade requires exact live scheduled post: '+tag+'/'+service)
                 current[service]=matches[0]
-            item = {**ledger['content'], 'creative_version':'creative-v2'}
+            # Replace each still-scheduled legacy card with its same-slot mini-story.
+            item = scheduled_item(day, slot)
             source, metadata = creative_asset(item, release, ledger)
             url = delivery_url(tag, source, now)
             ledger.setdefault('creative_previous', {'content': ledger['content'], 'video':ledger.get('video'), 'delivery_video':ledger.get('delivery_video')})
             ledger['content']=item
             ledger['creative_video']=source; ledger['creative_result']=metadata
-            ledger['creative_version']='creative-v2'
+            ledger['creative_version']=ENTERTAINMENT_VERSION
             save(release, ledger)
             for service, before in current.items():
                 expected_text=caption(item, service, tag)
@@ -342,7 +344,7 @@ def upgrade_creative(now):
             ledger['delivery_video']=url
             save(release,ledger)
         day+=dt.timedelta(days=1)
-    print(json.dumps({'creative_version':'creative-v2','updated_posts':changed},indent=2))
+    print(json.dumps({'creative_version':ENTERTAINMENT_VERSION,'updated_posts':changed},indent=2))
 
 
 
@@ -420,7 +422,7 @@ def existing_posts(*, now=None, metrics=False):
 
 def caption(item, service, tag):
     if item.get('creative_version') == ENTERTAINMENT_VERSION:
-        tracking = f'{ORIGIN}/?utm_source={service}&utm_medium=organic_social&utm_campaign=entertainment_trial&utm_content={tag}'
+        tracking = f'{ORIGIN}/?utm_source={service}&utm_medium=organic_social&utm_campaign=retention_first_story&utm_content={tag}'
         disclosure = 'AI narration and illustrative visuals.'
         if item['format'] == 'receipt':
             disclosure = 'Illustrative prices. ' + disclosure
@@ -553,7 +555,7 @@ def refresh_media(now):
 
 def campaign_posts(posts):
     return [p for p in posts if any('utm_campaign=' + name in p['text']
-        for name in ('30_day_shopping_tips', 'evergreen_shopping_tips', 'entertainment_trial'))]
+        for name in ('30_day_shopping_tips', 'evergreen_shopping_tips', 'entertainment_trial', 'retention_first_story'))]
 
 
 def future_slots(now):

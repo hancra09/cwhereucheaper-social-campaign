@@ -49,15 +49,16 @@ Authoring runs in the existing public GitHub Actions runner using the same open-
 
 `upgrade-creative` edits only exact live scheduled posts with at least20minutes lead, over the next48hours. IDs, dueAt and scheduled status must stay identical. Already published/sending/draft posts are never replaced. AI disclosures update alongside the media. Old MP4s remain in Releases; new `video-creative-v2.mp4` files and versioned public URLs prevent stale cached video delivery. Originals/provenance provide rollback evidence. The updater saves results after every channel change, and refuses uncertain render retries. Existing queued content is bound to its prior lesson facts.
 
-## Entertainment trial · 21 November 2026
+## Retention-first mini-stories · active from 22 November 2026
 
-The three regular 21 November slots use original short shopping comedy with separate
-scene artwork, four voiced beats, and no spoken sales pitch or website end card.
-The delivery-fee reveal uses explicitly illustrative amounts. The other slots play
-as a kitchen courtroom skit and a cupboard POV. Captions retain the tracking URL
-and AI disclosure. The campaign sends each reel through the existing Buffer route
-to all three channels. Previously selected release content remains bound to its
-slot. The regular creative returns after the trial.
+Every new slot uses a short, varied shopping mini-story rather than the old repetitive
+card format. It rotates the receipt, kitchen-courtroom and cupboard-POV visual
+treatments, with fresh narration drawn from that slot's frozen lesson plan. Every video
+ends with the CWUC call to action: “Visit CWhereUCheaper.co.za before your next checkout”
+and the on-screen website URL. Captions retain the tracking URL and AI disclosure. The
+campaign sends each reel through the existing Buffer route to all three channels.
+Still-scheduled legacy posts in the next 48 hours are upgraded in place: their post IDs
+and due times remain unchanged, while their media and captions become the mini-story version.
 
 Compare watch time and early retention, where available, against recent comparable
 posts on the same channel. Track each format separately. The automated weekly

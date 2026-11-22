@@ -46,6 +46,15 @@ class CreativeSafety(unittest.TestCase):
   url=m.publish('20261112-am',f'https://github.com/{c.REPO}/releases/download/20261112-am/video-creative-v2.mp4',gh=gh,request=Mock(return_value=b'0000ftyprest'),repo=c.REPO,now=dt.datetime(2026,11,12))
   self.assertTrue(url.endswith('/20261112-am-creative-v2.mp4'))
   self.assertEqual(gh.call_count,3)
+ def test_v4_cache_accepts_only_exact_same_slot_archive(self):
+  entries=[{'path':'20261122-am-creative-v4.mp4','type':'blob','mode':'100644','sha':'v4'}]
+  fake=lambda: Mock(side_effect=[{'object':{'sha':'c'}},{'tree':{'sha':'t'}},{'tree':entries}])
+  raw=Mock(return_value=b'0000ftypv4')
+  url=f'https://github.com/{c.REPO}/releases/download/20261122-am/video-creative-v4.mp4'
+  now=dt.datetime(2026,11,22)
+  self.assertTrue(m.publish('20261122-am',url,gh=fake(),request=raw,repo=c.REPO,now=now).endswith('/20261122-am-creative-v4.mp4'))
+  with self.assertRaises(ValueError):
+   m.publish('20261122-am',url.replace('20261122-am','20261123-am'),gh=fake(),request=raw,repo=c.REPO,now=now)
  def upgrade_fixture(self,status='scheduled'):
   item=c.campaign_item(dt.date(2026,11,12),'early');tag='20261112-early';url='https://public/new.mp4'
   posts=[{'id':s,'channelId':v,'status':status,'text':c.caption(item,s,tag),'dueAt':'2026-11-12T06:00:00Z','assets':[{'source':'old'}]} for s,v in c.CHANNELS.items()]

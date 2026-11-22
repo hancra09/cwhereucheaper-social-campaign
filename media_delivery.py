@@ -8,7 +8,7 @@ import urllib.error
 
 BRANCH = 'public-video-cache'
 TAG = re.compile(r'^20\d{6}-(early|am|pm)$')
-CACHE_FILE = re.compile(r'^20\d{6}-(early|am|pm)(-creative-v[23])?\.mp4$')
+CACHE_FILE = re.compile(r'^20\d{6}-(early|am|pm)(-creative-v[234])?\.mp4$')
 
 
 def retained(entries, now):
@@ -36,7 +36,7 @@ def publish(tag, source, *, gh, request, repo, now):
     allowed = {
         f'https://github.com/{repo}/releases/download/{tag}/video{suffix}.mp4':
             (f'video{suffix}.mp4', f'{tag}{suffix}.mp4')
-        for suffix in ('', '-creative-v2', '-creative-v3')
+        for suffix in ('', '-creative-v2', '-creative-v3', '-creative-v4')
     }
     if source not in allowed:
         raise ValueError('Only the exact archived campaign video may be cached')

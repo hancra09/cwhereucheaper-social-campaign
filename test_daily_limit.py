@@ -69,3 +69,21 @@ class DailyLimit(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class Reconcile(unittest.TestCase):
+    def test_youtube_day_full_counts_only_other_live_youtube_posts_that_day(self):
+        day = dt.date(2026, 11, 25)
+        yt, tt = c.CHANNELS['youtube'], c.CHANNELS['tiktok']
+        posts = [
+            {'channelId': yt, 'status': 'scheduled', 'dueAt': '2026-11-25T06:00:00.000Z', 'text': 'a\nutm_content=20261125-early\n'},
+            {'channelId': yt, 'status': 'scheduled', 'dueAt': '2026-11-25T10:30:00.000Z', 'text': 'b\nutm_content=20261125-am\n'},
+            {'channelId': tt, 'status': 'scheduled', 'dueAt': '2026-11-25T16:30:00.000Z', 'text': 'c\nutm_content=20261125-pm\n'},
+        ]
+        self.assertTrue(c.youtube_day_full(posts, day, '20261125-pm'))
+        self.assertFalse(c.youtube_day_full(posts[:1], day, '20261125-pm'))
+        posts[1]['status'] = 'error'
+        self.assertFalse(c.youtube_day_full(posts, day, '20261125-pm'))
+        # 22:30 UTC on the 24th is already the 25th in SAST
+        late = [{'channelId': yt, 'status': 'sent', 'dueAt': '2026-11-24T22:30:00Z', 'text': 'x'}] * 2
+        self.assertTrue(c.youtube_day_full(late, day, '20261125-pm'))

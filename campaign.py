@@ -56,6 +56,22 @@ def daily_limit_refused(ledger, service):
     return any(marker in message for marker in DAILY_LIMIT_MARKERS)
 
 
+def youtube_day_full(posts, day, tag):
+    """True when YouTube already holds Buffer's two posts for this SAST day (excluding tag)."""
+    count = 0
+    for p in posts:
+        if p.get('channelId') != CHANNELS['youtube'] or p.get('status') not in ('scheduled', 'sending', 'sent'):
+            continue
+        if 'utm_content=' + tag + '\n' in (p.get('text') or ''):
+            continue
+        try:
+            due = dt.datetime.fromisoformat(p['dueAt'].replace('Z', '+00:00')).astimezone(SAST).date()
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue
+        count += due == day
+    return count >= 2
+
+
 def campaign_item(day, slot):
     items = json.loads(Path(__file__).with_name('content.json').read_text())
     third = json.loads(Path(__file__).with_name('content-third.json').read_text())
@@ -705,6 +721,15 @@ def prepare_ahead(now):
         video_ready = bool(ledger.get('video') or (release and
             any(a['name'] == 'video.mp4' for a in release.get('assets', []))))
         pending = ledger.get('pending_service')
+        if pending == 'youtube' and not matches.get(pending) and youtube_day_full(posts, day, tag):
+            # No YouTube post exists for this slot and YouTube already holds two posts that
+            # day, so Buffer cannot have accepted the uncertain send: it was the daily cap.
+            ledger.pop('pending_service', None)
+            ledger.setdefault('refused', {})['youtube'] = (
+                'maximum number of posts YouTube allows in a day (2) - reconciled: no live post, day full')
+            save(release, ledger)
+            print('::warning::Reconciled YouTube daily-cap send; other channels continue: ' + tag)
+            pending = None
         if pending and not matches.get(pending):
             print('::warning::Uncertain send retained for review; no resend: ' + tag)
             continue

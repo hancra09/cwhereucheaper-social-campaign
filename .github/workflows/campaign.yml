@@ -77,7 +77,7 @@ jobs:
           key: cwuc-kokoro-model-files-v1.1-${{ runner.os }}-${{ runner.arch }}
       - name: Check campaign safety guards
         run: |
-          python3 -m unittest -q test_campaign.py test_creative.py test_response.py test_product_response.py test_comparison_response.py test_response_schedule.py test_daily_limit.py > safety-fixture-output.log
+          python3 -m unittest -q test_campaign.py test_creative.py test_response.py test_product_response.py test_comparison_response.py test_response_schedule.py test_daily_limit.py test_giveaway.py > safety-fixture-output.log
           (cd comment-monitor && python3 -m unittest -q test_native_verifier.py test_health_signal.py test_monitor_status.py)
       - name: Install video validation tools
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg

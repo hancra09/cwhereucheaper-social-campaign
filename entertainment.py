@@ -205,3 +205,156 @@ def episode_item(item, day, slot):
         'script': ' '.join(line for _, line in beats),
         'video_style': 'retention-first shopping mini-story',
     }
+
+
+# --------------------------------------------------------------------------- #
+# January Pro draw (Owner request, 24 November 2026). The evening slot promotes
+# the draw from 26 November to 31 December 2026; the other slots stay tips.
+# Every version states the benefit, how to enter, the random draw and the
+# closing date; the caption adds how results are announced and where the rules
+# are (Consumer Protection Act s36(5)). Rules: /pro/january-draw.
+# --------------------------------------------------------------------------- #
+import datetime as _dt
+
+GIVEAWAY_FROM = _dt.date(2026, 11, 26)
+GIVEAWAY_TO = _dt.date(2026, 12, 31)
+GIVEAWAY_SLOT = 'pm'
+GIVEAWAY_POLICY = 'january-pro-draw-20261124'
+GIVEAWAY_RULES_URL = 'https://www.cwhereucheaper.co.za/pro/january-draw'
+GIVEAWAY_HASHTAGS = '#CWhereUCheaper #JanuarySavings #SmartShoppingSA'
+GIVEAWAY_CTA = ('JOIN FREE BY 31 DEC', 'Join free at CWhereUCheaper.co.za. Rules on the site.')
+GIVEAWAY_CAPTION = (
+    "December had its fun. January wants to see the receipts. 🧾🇿🇦\n\n"
+    "Create and verify a free CWhereUCheaper account by 31 December 2026 to enter the draw. "
+    "We'll pick 10 winners at random on 2 January 2027, and each gets CWUC Pro for January 2027, "
+    "free and worth R99. Winners are told by email by 5 January 2027. No purchase needed.\n\n"
+    f"Rules: {GIVEAWAY_RULES_URL}\n"
+    "Not sponsored or run by Facebook, TikTok or YouTube.\n\n"
+    "Make that January budget stretch. Sign up at cwhereucheaper.co.za."
+)
+
+# (title, format, asset, beats). Spoken text stays short: Buffer-ready videos must
+# narrate in 8-24 seconds, so each version is at most 44 spoken words with the ending.
+GIVEAWAY_VERSIONS = (
+    ('January wants to see the receipts', 'receipt', 'receipt.jpg', (
+        ('DECEMBER HAD ITS FUN', 'December had its fun. January wants the receipts.'),
+        ('10 WINNERS, AT RANDOM', 'Ten random winners get January Pro.'),
+        ('WORTH R99 EACH', 'Worth R99 each. No purchase needed.'),
+        ('VERIFY BY 31 DEC', 'Create and verify a free account by the thirty-first of December.'),
+    )),
+    ('Your January budget called', 'pov', 'cupboard.jpg', (
+        ('YOUR BUDGET CALLED', 'Your January budget called. It sounded nervous.'),
+        ('WE HAVE BACKUP', 'Ten random winners get January Pro, worth R99 each.'),
+        ('FREE TO ENTER', 'Create and verify a free account by the thirty-first of December.'),
+        ('NOTHING TO BUY', 'No purchase needed.'),
+    )),
+    ('Januworry has a plan B', 'court', 'court.jpg', (
+        ('JANUWORRY IS COMING', 'Januworry is coming. We have a plan B.'),
+        ('10 MONTHS OF PRO', 'Ten random winners get January Pro, worth R99 each.'),
+        ('ENTRY IS FREE', 'Verify a free account by the thirty-first of December.'),
+        ('NOTHING TO BUY', 'No purchase needed.'),
+    )),
+    ('The court of January is in session', 'court', 'court.jpg', (
+        ('ORDER IN THE COURT', 'Order in the court of January. Receipts on trial.'),
+        ('THE VERDICT', 'Ten people get January Pro, worth R99 each.'),
+        ('THE EVIDENCE', 'A free account, verified by the thirty-first of December.'),
+        ('THE JURY IS RANDOM', 'Winners picked at random. Nothing to buy.'),
+    )),
+    ('POV: it is the second of January', 'pov', 'cupboard.jpg', (
+        ('POV: 2 JANUARY', 'It is the second of January. The cupboard is judging you.'),
+        ('10 WIN JANUARY PRO', 'Ten random winners get January Pro, worth R99 each.'),
+        ('FREE ENTRY', 'Verify a free account by the thirty-first of December.'),
+        ('NOTHING TO BUY', 'No purchase needed.'),
+    )),
+    ('Already a member? You are in', 'pov', 'basket.png', (
+        ('ALREADY A MEMBER?', 'Got a verified CWUC account?'),
+        ("YOU'RE ALREADY IN", "You're already in the January Pro draw."),
+        ('10 RANDOM WINNERS', 'Ten random winners, worth R99 each.'),
+        ('NEW HERE?', 'New here? Verify by the thirty-first of December.'),
+    )),
+    ('Two steps to enter', 'receipt', 'receipt.jpg', (
+        ('TWO STEPS, TOPS', 'Two steps. Your January self says thanks.'),
+        ('STEP ONE', 'Create a free account.'),
+        ('STEP TWO', 'Verify your email by the thirty-first of December.'),
+        ('10 WIN JANUARY PRO', 'Ten random winners get January Pro, worth R99 each.'),
+    )),
+    ('The festive receipt is long', 'receipt', 'receipt.jpg', (
+        ('THE FESTIVE RECEIPT', 'The festive receipt is long. January reads every line.'),
+        ('A LITTLE HELP', 'Ten random winners get January Pro, worth R99 each.'),
+        ('FREE TO ENTER', 'Verify a free account by the thirty-first of December.'),
+        ('NOTHING TO BUY', 'No purchase needed.'),
+    )),
+    ('What does Pro actually do?', 'pov', 'basket.png', (
+        ('WHAT DOES PRO DO?', 'Pro watches prices on your list and says when to buy.'),
+        ('WIN JANUARY FREE', 'Ten random winners get January Pro, worth R99 each.'),
+        ('HOW TO ENTER', 'Verify a free account by the thirty-first of December.'),
+        ('NOTHING TO BUY', 'No purchase needed.'),
+    )),
+    ('Make January stretch', 'court', 'court.jpg', (
+        ('MAKE JANUARY STRETCH', 'January is long. Your budget needs backup.'),
+        ('A MONTH OF PRO', 'Ten random winners get January Pro, worth R99 each.'),
+        ('ENTER BY 31 DEC', 'Verify a free account by the thirty-first of December.'),
+        ('NOTHING TO BUY', 'No purchase needed.'),
+    )),
+)
+GIVEAWAY_FINAL_WEEK = ('One week left to enter', 'receipt', 'receipt.jpg', (
+    ('ONE WEEK LEFT', 'Less than a week left to enter the January Pro draw.'),
+    ('10 RANDOM WINNERS', 'Ten random winners, worth R99 each.'),
+    ('FREE TO ENTER', 'Verify a free account by the thirty-first of December.'),
+    ('NOTHING TO BUY', 'No purchase needed.'),
+))
+GIVEAWAY_LAST_DAY = ('Last day to enter', 'receipt', 'receipt.jpg', (
+    ('LAST DAY TO ENTER', 'Last day to enter the January Pro draw.'),
+    ('CLOSES 23:59 TONIGHT', 'Entries close one minute before midnight.'),
+    ('FREE • VERIFY TODAY', 'Verify a free account today.'),
+    ('10 RANDOM WINNERS', 'Ten random winners, worth R99 each.'),
+))
+
+
+def is_giveaway_slot(day, slot):
+    return slot == GIVEAWAY_SLOT and GIVEAWAY_FROM <= day <= GIVEAWAY_TO
+
+
+def giveaway_version(day):
+    if day == GIVEAWAY_TO:
+        return GIVEAWAY_LAST_DAY
+    if day >= GIVEAWAY_TO - _dt.timedelta(days=6):
+        return GIVEAWAY_FINAL_WEEK
+    return GIVEAWAY_VERSIONS[(day - GIVEAWAY_FROM).days % len(GIVEAWAY_VERSIONS)]
+
+
+def giveaway_item(day, slot):
+    title, fmt, asset, story = giveaway_version(day)
+    if title == GIVEAWAY_FINAL_WEEK[0]:
+        # A countdown keeps each final-week day distinct for the repeat check.
+        left = (GIVEAWAY_TO - day).days
+        words = ('one', 'two', 'three', 'four', 'five', 'six')[left - 1]
+        plural = 'day' if left == 1 else 'days'
+        title = f'{words.capitalize()} {plural} left to enter'
+        story = ((f'{left} {plural.upper()} LEFT', f'{words.capitalize()} {plural} left to enter the January Pro draw.'),
+                 *story[1:])
+    beats = (*story, GIVEAWAY_CTA)
+    options = list(dict.fromkeys([(fmt, asset), ('receipt', 'receipt.jpg'), ('court', 'court.jpg'),
+                                  ('pov', 'cupboard.jpg'), ('pov', 'basket.png')]))
+    return {
+        'date': day.isoformat(),
+        'slot': slot,
+        'title': title,
+        'caption': GIVEAWAY_CAPTION,
+        'theme': 'giveaway',
+        'asset': asset,
+        'format': fmt,
+        'visual_options': options,
+        'scene_cuts': True,
+        'is_price_evidence': False,
+        'is_example': False,
+        'giveaway': True,
+        'growth_hashtags': GIVEAWAY_HASHTAGS,
+        'creative_policy': 'fresh-stories-20261122',
+        'giveaway_policy': GIVEAWAY_POLICY,
+        'beats': beats,
+        'style': 'Playful',
+        'creative_version': VERSION,
+        'script': ' '.join(line for _, line in beats),
+        'video_style': 'retention-first shopping mini-story',
+    }

@@ -13,7 +13,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from content_factory import build_month, theme_for, validate_plan
-from entertainment import VERSION as ENTERTAINMENT_VERSION, episode_item, fingerprint, select_opening
+from entertainment import VERSION as ENTERTAINMENT_VERSION, episode_item, fingerprint, giveaway_item, is_giveaway_slot, select_opening
 from media_delivery import publish as publish_delivery
 
 SAST = dt.timezone(dt.timedelta(hours=2))
@@ -91,6 +91,9 @@ def campaign_item(day, slot):
 
 
 def scheduled_item(day, slot):
+    # Owner request 24 Nov 2026: the evening slot promotes the January Pro draw to 31 Dec.
+    if is_giveaway_slot(day, slot):
+        return giveaway_item(day, slot)
     # The approved retention-first mini-story format replaces the old card campaign.
     return episode_item(campaign_item(day, slot), day, slot)
 
@@ -508,8 +511,22 @@ def caption(item, service, tag):
     return item['title'] + '\n\n' + item['caption'] + '\nStart your next price check: ' + link + '\n' + disclosure + ' ' + item.get('growth_hashtags', '#SouthAfrica #ShoppingTips #CwhereUcheaper') + (' #Shorts' if service == 'youtube' else '')
 
 
+def giveaway_rules_live():
+    """The draw may only be advertised while its rules page is public (CPA s36(5)(f))."""
+    from entertainment import GIVEAWAY_RULES_URL
+    try:
+        page = request(GIVEAWAY_RULES_URL).decode('utf-8', 'replace')
+    except (urllib.error.URLError, OSError, ValueError):
+        return False
+    return 'January Pro draw' in page and '31 December 2026' in page
+
+
 def run(day, slot, *, now, immediate=False, preflight=False, request_item=None):
     item = request_item or scheduled_item(day, slot)
+    if item.get('giveaway') and not preflight and not giveaway_rules_live():
+        # Checked before any render or send, so nothing is spent and the next run retries.
+        raise RuntimeError('January Pro draw rules page is not live yet; giveaway post held: '
+                           + day.strftime('%Y%m%d') + '-' + slot)
     due = dt.datetime.combine(day, SLOTS[slot], SAST)
     if immediate:
         assert os.environ.get('ALLOW_SMOKE') == '1' and day == START and slot == 'am' and now.date() == dt.date(2026, 11, 7)

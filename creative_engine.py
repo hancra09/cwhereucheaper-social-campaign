@@ -104,7 +104,7 @@ def story_cutaway(headline, beat):
  colors={'receipt':('#FFF6DF','#392923'),'court':('#281E2D','#FFE0A0'),'pov':('#12382D','#F4FFEC')}
  bg,ink=colors[CFG['format']]
  image=Image.new('RGB',(W,H),bg)
- header_word='THE CHECK' if beat in (1,2) else 'THE TAKEAWAY'
+ header_word=('JANUARY PRO DRAW' if CFG.get('giveaway') else 'THE CHECK' if beat in (1,2) else 'THE TAKEAWAY')
  text(image,header_word,(90,318),53,ink,True)
  wrapped(image,headline,(90,438),900,365,112,ink)
  if CFG['asset'] in {'pouches.png','bottles.png'}:
@@ -130,6 +130,26 @@ def story_cutaway(headline, beat):
  return image
 
 
+def giveaway_end_card(t):
+ """Closing card for the January Pro draw: the offer, the deadline and where the rules are."""
+ image = Image.new('RGB', (W, H), NAVY)
+ text(image, 'JANUARY PRO DRAW', (540, 300), 66, WHITE, True, 'mm')
+ text(image, '10 WINNERS', (540, 420), 112, YELLOW, True, 'mm')
+ rr(image, (110, 540, 970, 900), '#0E2A4F', 40, YELLOW, 5)
+ text(image, 'CWUC Pro for January 2027', (540, 625), 50, WHITE, True, 'mm')
+ text(image, 'Worth R99 each', (540, 705), 46, YELLOW, True, 'mm')
+ text(image, 'Picked at random. No purchase needed.', (540, 800), 38, GREY, False, 'mm')
+ text(image, 'Create + verify a free account', (540, 1010), 46, WHITE, True, 'mm')
+ text(image, 'by 31 December 2026', (540, 1080), 46, WHITE, True, 'mm')
+ rr(image, (96, 1190, 984, 1325), YELLOW, 60)
+ text(image, 'cwhereucheaper.co.za', (540, 1258), 56, NAVY, True, 'mm')
+ text(image, 'Rules: cwhereucheaper.co.za/pro/january-draw', (540, 1420), 34, WHITE, False, 'mm')
+ text(image, 'Winners told by email by 5 January 2027.', (540, 1480), 34, GREY, False, 'mm')
+ text(image, 'Not run by Facebook, TikTok or YouTube.', (540, 1540), 30, GREY, False, 'mm')
+ progress(image, t, True)
+ return image
+
+
 def story_disclosure(image):
  if CFG.get('synthetic_test'):
   rr(image,(90,135,990,225),'#8B2438',20)
@@ -148,6 +168,8 @@ def render_episode(t):
 
  cuts = NARRATION['cuts']
  beat = next((i for i, end in enumerate(cuts[1:]) if t < end), len(cuts) - 2)
+ if beat == len(CFG['beats']) - 1 and CFG.get('giveaway'):
+  return giveaway_end_card(t)
  if beat == len(CFG['beats']) - 1:
   image = Image.new('RGB', (W, H), NAVY)
   text(image, 'BEFORE YOU BUY', (540, 330), 76, WHITE, True, 'mm')

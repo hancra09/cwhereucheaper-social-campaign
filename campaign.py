@@ -27,11 +27,33 @@ CHANNELS = {'youtube': '6aeef238e29c69a171916d83', 'tiktok': '6aeef202e29c69a171
 FACEBOOK_PAGE_ID = '1265683793295341'  # Public URL redirects to profile 61592840593333.
 POST_FIELDS = 'id channelId status text dueAt externalLink error { message } assets { source }'
 SLOTS = {'early': dt.time(8), 'am': dt.time(12, 30), 'pm': dt.time(18, 30)}
+# Buffer lets a YouTube channel schedule at most two posts a day. From this date the
+# early slot goes to TikTok and Facebook only; YouTube keeps the lunchtime and evening slots.
+YOUTUBE_TWO_A_DAY_FROM = dt.date(2026, 11, 26)
+DAILY_LIMIT_MARKERS = ('maximum number of posts', 'daily posting limit')
 ROOT = Path(__file__).parent
 AUDIT_DAYS = 7
 DAILY_RENDER_LIMIT = 3
 PREPARE_HOURS = 48
 MIN_LEAD_HOURS = 2
+
+
+def slot_channels(tag):
+    """Channels that take a post in this slot (see YOUTUBE_TWO_A_DAY_FROM)."""
+    try:
+        day = dt.datetime.strptime(tag[:8], '%Y%m%d').date()
+        slot = tag[9:]
+    except ValueError:
+        return dict(CHANNELS)
+    if slot == 'early' and day >= YOUTUBE_TWO_A_DAY_FROM:
+        return {k: v for k, v in CHANNELS.items() if k != 'youtube'}
+    return dict(CHANNELS)
+
+
+def daily_limit_refused(ledger, service):
+    """Buffer definitely refused this service for its per-day cap (nothing was created)."""
+    message = str((ledger.get('refused') or {}).get(service) or '').lower()
+    return any(marker in message for marker in DAILY_LIMIT_MARKERS)
 
 
 def campaign_item(day, slot):
@@ -322,7 +344,7 @@ def upgrade_creative(now, *, only_slots=None):
             if not ledger.get('posts') or ledger.get('content', {}).get('creative_version') == ENTERTAINMENT_VERSION:
                 continue
             current = {}
-            for service, channel in CHANNELS.items():
+            for service, channel in slot_channels(tag).items():
                 recorded = ledger['posts'].get(service)
                 matches = [p for p in posts if recorded and p['id']==recorded['id'] and p['channelId']==channel]
                 if (len(matches)!=1 or matches[0]['status']!='scheduled'
@@ -406,7 +428,9 @@ def apply_growth_test(now):
         ledger=json.loads(release['body'] or '{}')
         if ledger.get('growth_test_pending'): raise RuntimeError('Uncertain previous test edit; reconcile before retry: '+tag)
         current={}
-        for service, channel in CHANNELS.items():
+        for service, channel in slot_channels(tag).items():
+            if service not in ledger.get('posts',{}) and daily_limit_refused(ledger, service):
+                continue
             recorded=ledger.get('posts',{}).get(service,{}).get('id')
             found=[p for p in posts if p['id']==recorded and p['channelId']==channel and p['status']=='scheduled']
             if len(found)!=1 or found[0]['dueAt'] != ledger['posts'][service]['dueAt']:
@@ -512,9 +536,11 @@ def run(day, slot, *, now, immediate=False, preflight=False, request_item=None):
         age=dt.datetime.now(dt.timezone.utc)-checked.astimezone(dt.timezone.utc)
         if age>dt.timedelta(minutes=30) or age<dt.timedelta(minutes=-5) or fresh['signature']!=item['evidence_comparison_signature']:
             raise RuntimeError('Comparison evidence expired or changed; no new post created.')
-    for service, channel in CHANNELS.items():
+    for service, channel in slot_channels(tag).items():
         text = caption(item, service, tag)
         matches = [p for p in posts if p['channelId'] == channel and p['text'] == text]
+        if not matches and service not in ledger['posts'] and daily_limit_refused(ledger, service):
+            continue  # Buffer already refused this channel for the day; the others still post.
         if len(matches) > 1:
             raise RuntimeError('Multiple existing matching posts; manual review required.')
         if matches:
@@ -549,7 +575,16 @@ def run(day, slot, *, now, immediate=False, preflight=False, request_item=None):
                 inp['dueAt'] = due.astimezone(dt.timezone.utc).isoformat()
             result = buffer('mutation($input:CreatePostInput!){createPost(input:$input){... on PostActionSuccess{post{' + POST_FIELDS + '}} ... on MutationError{message}}}', {'input': inp})['createPost']
             if 'post' not in result:
-                raise RuntimeError('Buffer refused ' + service + ': ' + str(result.get('message')))
+                # A MutationError is a definite refusal: Buffer created nothing, so the send
+                # is not uncertain. Record it instead of freezing the slot for every channel.
+                message = str(result.get('message'))
+                ledger.pop('pending_service', None)
+                ledger.setdefault('refused', {})[service] = message
+                save(release, ledger)
+                if daily_limit_refused(ledger, service):
+                    print('::warning::Buffer daily limit for ' + service + '; other channels continue: ' + tag)
+                    continue
+                raise RuntimeError('Buffer refused ' + service + ': ' + message)
             post = result['post']
         ledger['posts'][service] = post
         ledger.pop('pending_service', None)
@@ -660,11 +695,12 @@ def prepare_ahead(now):
         item = ledger.get('content') or scheduled_item(day, slot)
         matches = {service: [p for p in posts if p['channelId'] == channel
                    and p['text'] == caption(item, service, tag)]
-                   for service, channel in CHANNELS.items()}
+                   for service, channel in slot_channels(tag).items()}
         if any(len(values) > 1 for values in matches.values()):
             raise RuntimeError('Duplicate live slot posts need review: ' + tag)
-        if all(values and values[0]['status'] in ('scheduled', 'sending', 'sent')
-               for values in matches.values()):
+        if all((values and values[0]['status'] in ('scheduled', 'sending', 'sent'))
+               or (not values and daily_limit_refused(ledger, service))
+               for service, values in matches.items()):
             continue
         video_ready = bool(ledger.get('video') or (release and
             any(a['name'] == 'video.mp4' for a in release.get('assets', []))))
@@ -846,9 +882,13 @@ def audit():
             if dt.datetime.combine(day, publish_time, SAST) > cutoff:
                 continue
             tag = day.strftime('%Y%m%d') + '-' + slot
-            for service, channel in CHANNELS.items():
+            for service, channel in slot_channels(tag).items():
                 matches = [p for p in relevant if p['channelId'] == channel and 'utm_content=' + tag + '\n' in p['text']]
                 if len(matches) != 1 or matches[0]['status'] != 'sent':
+                    if not matches:
+                        release = read_release(tag)
+                        if daily_limit_refused(json.loads(release['body'] or '{}') if release else {}, service):
+                            continue  # Buffer's per-day channel cap, recorded at send time.
                     failed.append({'slot': tag, 'service': service, 'problem': 'Expected one sent post', 'found': matches})
         day += dt.timedelta(days=1)
     Path('audit.json').write_text(json.dumps(relevant, indent=2))

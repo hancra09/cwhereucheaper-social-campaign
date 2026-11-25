@@ -9,6 +9,13 @@ import entertainment as e
 
 
 class Giveaway(unittest.TestCase):
+    def setUp(self):
+        # These tests cover the draw while its rules page is public; no network in tests.
+        from unittest.mock import patch
+        patcher = patch.object(c, 'giveaway_rules_live', return_value=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_only_the_evening_slot_from_26_november_to_31_december(self):
         self.assertFalse(c.is_giveaway_slot(dt.date(2026, 11, 25), 'pm'))
         self.assertTrue(c.is_giveaway_slot(dt.date(2026, 11, 26), 'pm'))
@@ -84,9 +91,27 @@ class RulesGate(unittest.TestCase):
         with patch.object(c, 'giveaway_rules_live', return_value=False), \
                 patch.object(c, 'buffer') as api, patch.object(c, 'load_release') as release:
             with self.assertRaisesRegex(RuntimeError, 'rules page is not live'):
-                c.run(dt.date(2026, 12, 10), 'pm', now=dt.datetime(2026, 12, 9, 9, tzinfo=c.SAST))
+                c.run(dt.date(2026, 12, 10), 'pm', now=dt.datetime(2026, 12, 9, 9, tzinfo=c.SAST),
+                      request_item=e.giveaway_item(dt.date(2026, 12, 10), 'pm'))
             api.assert_not_called()
             release.assert_not_called()
+
+    def test_held_draw_slot_falls_back_to_a_normal_tip_instead_of_blocking(self):
+        from unittest.mock import patch
+        day = dt.date(2026, 12, 10)
+        with patch.object(c, 'giveaway_rules_live', return_value=False):
+            item = c.scheduled_item(day, 'pm')
+        self.assertFalse(item.get('giveaway'))
+        self.assertEqual(item['creative_version'], e.VERSION)
+        with patch.object(c, 'giveaway_rules_live', return_value=True):
+            self.assertTrue(c.scheduled_item(day, 'pm').get('giveaway'))
+
+    def test_collapsed_tiktok_caption_still_matches_its_slot(self):
+        text = 'Title Body https://x/?utm_content=20261121-am AI narration #SouthAfrica'
+        self.assertTrue(c.has_tag(text, '20261121-am'))
+        self.assertTrue(c.has_tag('a\nutm_content=20261121-am\nb', '20261121-am'))
+        self.assertFalse(c.has_tag(text.replace('-am', '-amx'), '20261121-am'))
+        self.assertFalse(c.has_tag(text, '20261121-a'))
 
     def test_rules_check_needs_the_real_page(self):
         from unittest.mock import patch

@@ -4,6 +4,7 @@ import base64
 import datetime as dt
 import http.cookiejar
 import json
+import re
 import os
 from pathlib import Path
 import subprocess
@@ -56,13 +57,19 @@ def daily_limit_refused(ledger, service):
     return any(marker in message for marker in DAILY_LIMIT_MARKERS)
 
 
+def has_tag(text, tag):
+    """True when a post carries this slot's tracking tag. Buffer stores published TikTok
+    captions with line breaks collapsed to spaces, so match on a word boundary."""
+    return re.search(r'utm_content=' + re.escape(tag) + r'(?=\s|$)', text or '') is not None
+
+
 def youtube_day_full(posts, day, tag):
     """True when YouTube already holds Buffer's two posts for this SAST day (excluding tag)."""
     count = 0
     for p in posts:
         if p.get('channelId') != CHANNELS['youtube'] or p.get('status') not in ('scheduled', 'sending', 'sent'):
             continue
-        if 'utm_content=' + tag + '\n' in (p.get('text') or ''):
+        if has_tag(p.get('text'), tag):
             continue
         try:
             due = dt.datetime.fromisoformat(p['dueAt'].replace('Z', '+00:00')).astimezone(SAST).date()
@@ -93,7 +100,13 @@ def campaign_item(day, slot):
 def scheduled_item(day, slot):
     # Owner request 24 Nov 2026: the evening slot promotes the January Pro draw to 31 Dec.
     if is_giveaway_slot(day, slot):
-        return giveaway_item(day, slot)
+        if giveaway_rules_live():
+            return giveaway_item(day, slot)
+        # Fix 25 Nov 2026: a held draw post used to stop preparation of every later slot.
+        # Until the rules page is public the evening slot carries the normal tip; once a
+        # slot is prepared its content is frozen, and later evening slots promote the draw.
+        print('::warning::January Pro draw rules page not live; normal tip used for '
+              + day.strftime('%Y%m%d') + '-' + slot, flush=True)
     # The approved retention-first mini-story format replaces the old card campaign.
     return episode_item(campaign_item(day, slot), day, slot)
 
@@ -516,9 +529,10 @@ def giveaway_rules_live():
     from entertainment import GIVEAWAY_RULES_URL
     try:
         page = request(GIVEAWAY_RULES_URL).decode('utf-8', 'replace')
+        live = 'January Pro draw' in page and '31 December 2026' in page
     except (urllib.error.URLError, OSError, ValueError):
-        return False
-    return 'January Pro draw' in page and '31 December 2026' in page
+        live = False
+    return live
 
 
 def run(day, slot, *, now, immediate=False, preflight=False, request_item=None):
@@ -814,7 +828,7 @@ def prepare_request(now, topic, request_id, subject="", origin=""):
             item['caption']='TEST VIDEO: Based on a simulated viewer request. '+item['caption']
         for day, slot in future_slots(now):
             tag = day.strftime('%Y%m%d')+'-'+slot
-            if any('utm_content='+tag+'\n' in p.get('text','') for p in posts) or read_release(tag):
+            if any(has_tag(p.get('text',''), tag) for p in posts) or read_release(tag):
                 continue
             candidate = fresh_story(episode_item(item,day,slot),day,slot)
             if candidate is None:
@@ -925,7 +939,7 @@ def audit():
                 continue
             tag = day.strftime('%Y%m%d') + '-' + slot
             for service, channel in slot_channels(tag).items():
-                matches = [p for p in relevant if p['channelId'] == channel and 'utm_content=' + tag + '\n' in p['text']]
+                matches = [p for p in relevant if p['channelId'] == channel and has_tag(p['text'], tag)]
                 if len(matches) != 1 or matches[0]['status'] != 'sent':
                     if not matches:
                         release = read_release(tag)

@@ -266,6 +266,9 @@ def spoken(text):
   result=number_words(whole)+' rand'
   if cents and int(cents):result+=' and '+number_words(cents.ljust(2,'0'))+' cents'
   return result
+ text=re.sub(r'CWhereUCheaper\.co\.za','See Where You Cheaper dot co dot za',text,flags=re.I)
+ text=re.sub(r'\bCWhereUCheaper\b','See Where You Cheaper',text,flags=re.I)
+ text=re.sub(r'\bCWUC\b','See Where You Cheaper',text)
  return re.sub(r'\bR(\d+(?:\.\d{1,2})?)\b',currency,text)
 
 
@@ -337,7 +340,7 @@ def narrate(cfg,work):
   lead = .03 if cfg.get('beats') else .12
   audio=np.concatenate([np.zeros(int(rate*lead),dtype=np.float32),audio,np.zeros(int(rate*.22),dtype=np.float32)])
   parts.append(audio);cuts.append(cuts[-1]+len(audio)/rate)
- minimum, maximum = (8, 24) if cfg.get('beats') else (18, 42)
+ minimum, maximum = (8, 28) if cfg.get('beats') else (18, 42)
  if not minimum <= cuts[-1] <= maximum:
   raise ValueError(f'Natural narration falls outside {minimum}–{maximum} seconds; manual script review required')
  audio=np.concatenate(parts);peak=float(np.max(np.abs(audio)))
@@ -363,12 +366,15 @@ def render_video(item,tag,destination,work):
   import imageio_ffmpeg
   ff=imageio_ffmpeg.get_ffmpeg_exe()
  cmd=[ff,'-y','-v','error','-f','rawvideo','-pix_fmt','rgb24','-s','1080x1920','-r','30','-i','-','-i',str(work/'narration.wav'),'-map','0:v','-map','1:a:0','-c:v','libx264','-preset','fast','-crf','19','-pix_fmt','yuv420p','-threads','2','-c:a','aac','-b:a','160k','-t',str(TOTAL),'-movflags','+faststart',str(destination)]
+ if episode:
+  import creative_v5
+  render_v5=creative_v5.Renderer(CFG,NARRATION,ASSETS,giveaway_end_card if CFG.get('giveaway') else None).frame
  proc=subprocess.Popen(cmd,stdin=subprocess.PIPE)
  for old in work.glob('preview-*.jpg'):old.unlink()
  preview_frames={round((start + end) / 2 * 30) for start, end in zip(NARRATION['cuts'], NARRATION['cuts'][1:])}
  try:
   for i in range(round(TOTAL*30)):
-   im = render_episode(i / 30) if episode else render(i / 30)
+   im = render_v5(i / 30) if episode else render(i / 30)
    if i in preview_frames:im.save(work/f'preview-{i:04d}.jpg',quality=92)
    proc.stdin.write(im.tobytes())
  finally:proc.stdin.close()

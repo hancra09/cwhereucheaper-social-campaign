@@ -1,84 +1,95 @@
 """Topic-specific CWUC stories with a shared site ending and rotating visuals."""
 import re
 
-VERSION = 'creative-v4'
+VERSION = 'creative-v5'
 FORMATS = (('receipt', 'receipt.jpg'), ('court', 'court.jpg'), ('pov', 'cupboard.jpg'))
-CTA = ('CHECK BEFORE YOU BUY', 'Visit CWhereUCheaper.co.za before your next checkout.')
+CTA = ('FREE ACCOUNT · LINK IN BIO', 'Search it free on CWhereUCheaper.co.za. Link in bio.')
+BRIDGE_LINE = 'Compare it across shops on CWhereUCheaper.co.za.'
 
-# Illustrative scenarios, not current price, stock or retailer claims.
+# creative-v5 (25 November 2026, Owner request): every story is hook -> problem ->
+# reveal -> CWUC bridge -> free-account CTA. Hooks talk to the viewer in under eight
+# words. Bridge lines only describe features the free site offers (same product
+# across shops, basket comparison, watching a basket). Illustrative scenarios, not
+# current price, stock or retailer claims.
 STORIES = {
+    'Do the division before the decision': ('receipt', 'receipt.jpg', (
+        ('6 FOR R54. DEAL?', 'Six for R54. Sounds like a deal, right?'),
+        ('DO THE MATHS', 'R54 divided by six is R9 each.'),
+        ('R9 vs R8', 'The single one is R8 in this example. That bundle just cost you more.'),
+        ('SAME PRODUCT. SIDE BY SIDE.', 'CWhereUCheaper shows the same product across shops, side by side.'),
+    )),
+    'The R15 delivery difference': ('receipt', 'receipt.jpg', (
+        ('R90 OR R100?', 'R90 or R100. Same item. Which one is cheaper?'),
+        ('ADD DELIVERY', 'The R90 one adds R30 delivery. That is R120.'),
+        ('R120 vs R105', 'The R100 one adds R5. R105. In this example, the pricier sticker wins.'),
+        ('COMPARE SHOPS FIRST', 'Compare shops on CWhereUCheaper, then check the checkout total.'),
+    )),
     'Cheaper per unit can still cost more today': ('court', 'pouches.png', (
-        ('BULK BAG ON TRIAL', 'The big bag is cheaper per scoop. My wallet would like to buy just the scoop, please.'),
-        ('AT THE TILL', 'The till has bad news. I have to pay for the whole bag.'),
-        ('TWO DIFFERENT NUMBERS', 'Check the cost per scoop and the cash you need today.'),
-        ('SMALL BAG WINS', 'If the big bag busts the budget or goes to waste, the small one wins this round.'),
+        ('THE BIG BAG LIED', 'The big bag is cheaper per scoop. So why are you broke at the till?'),
+        ('YOU PAY FOR ALL OF IT', 'Because you pay for the whole bag today, not one scoop.'),
+        ('BUDGET FIRST', 'If it busts the budget or goes off, the small bag wins.'),
+        ('SEE BOTH SIZES', 'Compare both sizes across shops on CWhereUCheaper.'),
     )),
     'Watch for a different product strength': ('pov', 'bottles.png', (
-        ('BOTTLE TWINS?', 'These laundry bottles could be twins. Until you turn them around.'),
-        ('FLIP THE LABELS', 'One is concentrated. The labels give different directions.'),
-        ('COUNT THE WASHES', 'Same size bottle does not tell me how many washes I am buying.'),
-        ('CHECK THE DIRECTIONS', 'I am checking the dosage and the stated washes before I pick.'),
+        ('LOOK IDENTICAL?', 'These two bottles look identical. They are not.'),
+        ('FLIP IT OVER', 'One is concentrated. Check how many washes it says.'),
+        ('COUNT THE WASHES', 'Same size bottle does not mean the same number of washes.'),
+        ('COMPARE BEFORE YOU GO', 'Check prices for both on CWhereUCheaper before you leave home.'),
     )),
-    'Do the division before the decision': ('receipt', 'receipt.jpg', (
-        ('ILLUSTRATIVE EXAMPLE', 'Six for R54 sounds like a special. My calculator would like a word.'),
-        ('R54 ÷ 6 = R9 EACH', 'R54 divided by six is R9 each.'),
-        ('SINGLE ITEM: R8', 'The single costs R8 in this example.'),
-        ('THE BUNDLE LOSES', 'The bundle loses. Never let a sticker do your maths.'),
+    'A bigger bottle may be different strength': ('pov', 'bottles.png', (
+        ('BIGGER = CHEAPER?', 'Bigger bottle, better deal? Not so fast.'),
+        ('READ THE BACK', 'Check how much each one says to use per wash.'),
+        ('WASHES, NOT LITRES', 'Different strengths make size a bad shortcut.'),
+        ('LINE THEM UP', 'Line them up across shops on CWhereUCheaper.'),
     )),
-    "The R15 delivery difference": ("receipt", "receipt.jpg", (
-        ("CHEAP UNTIL CHECKOUT", "Two identical items. One is R90. The other is R100. Easy, right?"),
-        ("DELIVERY JOINS IN", "The R90 item adds R30 delivery. Total: R120."),
-        ("PLOT TWIST", "The R100 item adds just R5. Total: R105."),
-        ("R15 LESS IN THIS EXAMPLE", "The higher sticker price wins by R15. Compare the checkout totals."),
+    'Choose a basket before choosing an offer': ('court', 'basket.png', (
+        ('SPECIALS ARE COSTING YOU', 'You came for dinner. You left with five specials.'),
+        ('LIST FIRST', 'Decide what you need before you look at promotions.'),
+        ('3 BARGAINS = MORE SPEND', 'Three bargains you did not need still cost more.'),
+        ('PRICE YOUR LIST', 'Build your basket on CWhereUCheaper and compare it across shops.'),
     )),
-    "A bigger bottle may be different strength": ("pov", "bottles.png", (
-        ("BIGGER ISN’T ALWAYS BETTER", "The bigger bottle has entered the chat. So has the tiny dosage label."),
-        ("READ THE BACK", "Check how much each bottle says to use."),
-        ("COMPARE EQUIVALENT USES", "Different strengths can make volume a bad shortcut."),
-        ("DON’T GUESS BY SIZE", "Compare equivalent washes only when the labels give you enough information."),
+    'Before you tap reorder': ('pov', 'cupboard.jpg', (
+        ("DON'T TAP REORDER", 'Wait. Do not tap reorder yet.'),
+        ('CHECK THE CUPBOARD', 'Three packs of pasta already in the cupboard. Take them out.'),
+        ('PRICES MOVED', 'Prices and delivery change. Read the new total.'),
+        ('WATCH YOUR BASKET FREE', 'Or save your basket on CWhereUCheaper and watch it for free.'),
     )),
-    "Choose a basket before choosing an offer": ("court", "basket.png", (
-        ("THE TROLLEY HAS A LAWYER", "I came for dinner. My trolley wants to plead special offer."),
-        ("START WITH THE PLAN", "Decide what you actually need before looking at the promotions."),
-        ("COMPARE THAT BASKET", "Find a good price on your own list, not a list built by discounts."),
-        ("EXHIBIT: THREE UNPLANNED EXTRAS", "An individual bargain can still leave you spending more."),
+    'A marketplace seller matters': ('receipt', 'receipt.jpg', (
+        ('WRONG SELLER?', 'Same product page. Different seller. Did you check?'),
+        ("WHO'S SELLING?", 'Look at the actual seller, not just the product.'),
+        ('DELIVERY. RETURNS.', 'Delivery and returns can change with the seller.'),
+        ('COMPARE EXACT OFFERS', 'Compare offers for the same product on CWhereUCheaper.'),
     )),
-    "Before you tap reorder": ("pov", "cupboard.jpg", (
-        ("REORDER IS NOT REPLAY", "My reorder button remembers everything except what changed since last time."),
-        ("CHECK QUANTITIES", "Review the quantities. Take out what is already in the cupboard."),
-        ("CHECK SUBSTITUTIONS", "Look for unavailable items or changed substitutions."),
-        ("CHECK THE CURRENT TOTAL", "Prices and delivery can change. Read the new total before confirming."),
+    'Check the product variant': ('court', 'pouches.png', (
+        ('WRONG ONE AGAIN?', 'The picture said your flavour. The dropdown said surprise.'),
+        ('SIZE. COLOUR. FLAVOUR.', 'Same product family is not the same product.'),
+        ('RECHECK THE PRICE', 'Pick the exact version, then check the price again.'),
+        ('MATCH IT EXACTLY', 'Search the exact product on CWhereUCheaper.'),
     )),
-    "A marketplace seller matters": ("receipt", "receipt.jpg", (
-        ("SAME PAGE, DIFFERENT SELLER", "Ever recognised the product and missed the name on the till slip?"),
-        ("CHECK WHO’S SELLING", "Look at the actual marketplace seller, not just the product page."),
-        ("CHECK DELIVERY AND RETURNS", "Availability, delivery and returns can change with the seller."),
-        ("COMPARE THE EXACT OFFER", "Match the item and check the final total before you pay."),
+    'A good price on the wrong item': ('court', 'court.jpg', (
+        ('CHEAP. AND USELESS.', 'A cheap spare part is expensive if it does not fit.'),
+        ('CHECK THE MODEL', 'Confirm the exact model and size first.'),
+        ('THEN COMPARE', 'Only compare prices on parts that actually fit.'),
+        ('SEARCH THE EXACT ONE', 'Then search that exact item on CWhereUCheaper.'),
     )),
-    "Check the product variant": ("court", "pouches.png", (
-        ("THE PRODUCT HAS AN ALIBI", "The picture says favourite flavour. The dropdown says surprise."),
-        ("SIZE, COLOUR, FLAVOUR", "Same product family does not mean the same version."),
-        ("MATCH THE SELECTION", "Check the exact variant and specifications you want."),
-        ("RECHECK THE PRICE", "The price you saw before picking a version might not be the price you pay."),
+    'Thirty seconds before checkout': ('receipt', 'receipt.jpg', (
+        ('FREE DELIVERY TRAP', 'You added stuff just to get free delivery, didn\'t you?'),
+        ('TAKE IT OUT', 'Remove anything you only added to reach the threshold.'),
+        ('COMPARE BOTH TOTALS', 'Compare both totals. Sometimes paying delivery is cheaper.'),
+        ('CHECK SHOPS FIRST', 'Check prices across shops on CWhereUCheaper first.'),
     )),
-    "A good price on the wrong item": ("court", "court.jpg", (
-        ("A DEAL THAT DOESN’T FIT", "A cheap spare part is expensive when it fits everything except your machine."),
-        ("CHECK THE FIT", "Confirm the dimensions, compatibility or exact model."),
-        ("COMPARE SUITABLE OPTIONS", "Rule out the wrong items before comparing prices."),
-        ("THEN CHECK THE TOTAL", "Compare the complete cost of the items that actually work for you."),
+    'Compare usable quantity': ('pov', 'pouches.png', (
+        ('BULK BUY REGRET', 'Your bulk buy looked brilliant. Then the leftovers moved in.'),
+        ('WILL YOU USE IT?', 'A low unit price only helps if you use it in time.'),
+        ('SMALL CAN WIN', 'Sometimes the smaller pack is the better buy.'),
+        ('COMPARE SIZES', 'Compare pack sizes across shops on CWhereUCheaper.'),
     )),
-    "Thirty seconds before checkout": ("receipt", "receipt.jpg", (
-        ("THE EXTRA ITEM TEST", "I added an extra item to save on shipping. My calculator has questions."),
-        ("TAKE A SHORT PAUSE", "Remove anything you only added to reach the threshold."),
-        ("COMPARE BOTH TOTALS", "Recalculate delivery and put the two payable totals side by side."),
-        ("BUY WHAT YOU NEED", "Keep the version that makes sense for what you actually wanted."),
-    )),
-    "Compare usable quantity": ("pov", "pouches.png", (
-        ("THE FRIDGE CAN’T KEEP SECRETS", "My bulk buy looked brilliant until the leftovers started applying for residency."),
-        ("COUNT WHAT YOU CAN USE", "A low unit price helps only if you can use the food in time."),
-        ("CHECK SAFE STORAGE", "Look at the space you have and how you’ll store it safely."),
-        ("SMALL CAN MAKE SENSE", "A smaller pack can be better for your household even with a higher unit price."),
-    )),
+}
+
+# Animated comparison card for the reveal beat: (label, value) pairs, winner index.
+COMPARE = {
+    'Do the division before the decision': ((('BUNDLE', 'R9 each'), ('SINGLE', 'R8 each')), 1),
+    'The R15 delivery difference': ((('R90 + R30 delivery', 'R120'), ('R100 + R5 delivery', 'R105')), 1),
 }
 
 def _topic(item):
@@ -170,8 +181,13 @@ def _lesson_beats(item):
                     (sentences[:a], sentences[a:b], sentences[b:c], sentences[c:])]
     else:
         segments = sentences
+    if len(segments) == 4 and len(' '.join(segments).split()) <= 48:
+        segments = [segments[0], segments[1], ' '.join(segments[2:])]
     labels = (_topic(item).upper(), 'LOOK CLOSER', 'CHECK THE DETAILS', 'BEFORE YOU BUY')
-    return tuple(zip(labels, segments))
+    beats = tuple(zip(labels, segments))
+    if len(beats) <= 3 and len(' '.join(segments).split()) <= 48:
+        beats = (*beats, ('COMPARE ON CWUC', BRIDGE_LINE))
+    return beats
 
 def episode_item(item, day, slot):
     offset = (day.toordinal() + ('early', 'am', 'pm').index(slot)) % len(FORMATS)
@@ -198,12 +214,13 @@ def episode_item(item, day, slot):
         'scene_cuts': True,
         'is_price_evidence': bool(item.get('evidence_product_id') or item.get('evidence_comparison_subject')),
         'is_example': bool(re.search(r'illustrative|made-up|in this example', item['caption'], re.I)),
-        'creative_policy': 'fresh-stories-20261122',
+        'creative_policy': 'hook-bridge-cta-20261125',
         'beats': beats,
+        'compare': COMPARE.get(topic) if not item.get('response_request_id') else None,
         'style': 'Playful',
         'creative_version': VERSION,
         'script': ' '.join(line for _, line in beats),
-        'video_style': 'retention-first shopping mini-story',
+        'video_style': 'kinetic captions + CWUC bridge',
     }
 
 
@@ -350,11 +367,11 @@ def giveaway_item(day, slot):
         'is_example': False,
         'giveaway': True,
         'growth_hashtags': GIVEAWAY_HASHTAGS,
-        'creative_policy': 'fresh-stories-20261122',
+        'creative_policy': 'hook-bridge-cta-20261125',
         'giveaway_policy': GIVEAWAY_POLICY,
         'beats': beats,
         'style': 'Playful',
         'creative_version': VERSION,
         'script': ' '.join(line for _, line in beats),
-        'video_style': 'retention-first shopping mini-story',
+        'video_style': 'kinetic captions + CWUC bridge',
     }

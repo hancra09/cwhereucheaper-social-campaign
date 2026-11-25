@@ -80,3 +80,16 @@ its approved options when the nearest neighbouring creative would repeat, or hol
 the candidate. The asset library can be reused with spacing; this is not a claim
 of never-reused footage or unlimited new ideas. A stale video cannot create a new
 post via the old renderer. Existing scheduled IDs and times are not reset.
+
+## creative-v5 refresh · Owner request 25 November 2026
+
+New slots use `creative_v5.py`: full-bleed moving visuals, kinetic headlines, word-by-word
+captions timed to the narration, animated price cards for the reveal beat, a CWUC bridge beat
+showing the real homepage capture in a browser card, and a free-account end card with the URL and
+"link in bio". Every story now follows hook → problem → reveal → CWUC bridge → free-account CTA.
+Hooks speak to the viewer in under eight words. Bridge lines describe only free-site features
+(same product across shops, basket comparison, watching a basket). Illustrative prices still say
+"in this example" and the on-screen tag reads "Example prices · AI visuals". The spoken brand is
+"See Where You Cheaper dot co dot za". Anton and Montserrat (SIL Open Font Licence, licences in
+`creative-assets/fonts`) are bundled so the runner needs no font install. The giveaway end card
+is unchanged. Narration may run up to 28 seconds.

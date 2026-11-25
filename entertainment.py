@@ -4,7 +4,7 @@ import re
 VERSION = 'creative-v5'
 FORMATS = (('receipt', 'receipt.jpg'), ('court', 'court.jpg'), ('pov', 'cupboard.jpg'))
 CTA = ('FREE ACCOUNT · LINK IN BIO', 'Search it free on CWhereUCheaper.co.za. Link in bio.')
-BRIDGE_LINE = 'Compare it across shops on CWhereUCheaper.co.za.'
+BRIDGE_LINE = 'Compare it across shops on CWhereUCheaper.co.za. Cheapest match first.'
 
 # creative-v5 (25 November 2026, Owner request): every story is hook -> problem ->
 # reveal -> CWUC bridge -> free-account CTA. Hooks talk to the viewer in under eight
@@ -16,75 +16,97 @@ STORIES = {
         ('6 FOR R54. DEAL?', 'Six for R54. Sounds like a deal, right?'),
         ('DO THE MATHS', 'R54 divided by six is R9 each.'),
         ('R9 vs R8', 'The single one is R8 in this example. That bundle just cost you more.'),
-        ('SAME PRODUCT. SIDE BY SIDE.', 'CWhereUCheaper shows the same product across shops, side by side.'),
+        ('SAME PRODUCT. SIDE BY SIDE.', 'CWhereUCheaper shows the same product across shops, side by side. Cheapest match first.'),
     )),
     'The R15 delivery difference': ('receipt', 'receipt.jpg', (
         ('R90 OR R100?', 'R90 or R100. Same item. Which one is cheaper?'),
         ('ADD DELIVERY', 'The R90 one adds R30 delivery. That is R120.'),
         ('R120 vs R105', 'The R100 one adds R5. R105. In this example, the pricier sticker wins.'),
-        ('COMPARE SHOPS FIRST', 'Compare shops on CWhereUCheaper, then check the checkout total.'),
+        ('COMPARE SHOPS FIRST', 'Compare shops on CWhereUCheaper, then check the checkout total. Cheapest match first.'),
     )),
     'Cheaper per unit can still cost more today': ('court', 'pouches.png', (
         ('THE BIG BAG LIED', 'The big bag is cheaper per scoop. So why are you broke at the till?'),
         ('YOU PAY FOR ALL OF IT', 'Because you pay for the whole bag today, not one scoop.'),
         ('BUDGET FIRST', 'If it busts the budget or goes off, the small bag wins.'),
-        ('SEE BOTH SIZES', 'Compare both sizes across shops on CWhereUCheaper.'),
+        ('SEE BOTH SIZES', 'Compare both sizes across shops on CWhereUCheaper. Cheapest match first.'),
     )),
     'Watch for a different product strength': ('pov', 'bottles.png', (
         ('LOOK IDENTICAL?', 'These two bottles look identical. They are not.'),
         ('FLIP IT OVER', 'One is concentrated. Check how many washes it says.'),
         ('COUNT THE WASHES', 'Same size bottle does not mean the same number of washes.'),
-        ('COMPARE BEFORE YOU GO', 'Check prices for both on CWhereUCheaper before you leave home.'),
+        ('COMPARE BEFORE YOU GO', 'Check prices for both on CWhereUCheaper before you leave home. Cheapest match first.'),
     )),
     'A bigger bottle may be different strength': ('pov', 'bottles.png', (
         ('BIGGER = CHEAPER?', 'Bigger bottle, better deal? Not so fast.'),
         ('READ THE BACK', 'Check how much each one says to use per wash.'),
         ('WASHES, NOT LITRES', 'Different strengths make size a bad shortcut.'),
-        ('LINE THEM UP', 'Line them up across shops on CWhereUCheaper.'),
+        ('LINE THEM UP', 'Line them up across shops on CWhereUCheaper. Cheapest match first.'),
     )),
     'Choose a basket before choosing an offer': ('court', 'basket.png', (
         ('SPECIALS ARE COSTING YOU', 'You came for dinner. You left with five specials.'),
         ('LIST FIRST', 'Decide what you need before you look at promotions.'),
         ('3 BARGAINS = MORE SPEND', 'Three bargains you did not need still cost more.'),
-        ('PRICE YOUR LIST', 'Build your basket on CWhereUCheaper and compare it across shops.'),
+        ('PRICE YOUR LIST', 'Build your basket on CWhereUCheaper and compare it across shops. Cheapest match first.'),
     )),
     'Before you tap reorder': ('pov', 'cupboard.jpg', (
         ("DON'T TAP REORDER", 'Wait. Do not tap reorder yet.'),
         ('CHECK THE CUPBOARD', 'Three packs of pasta already in the cupboard. Take them out.'),
         ('PRICES MOVED', 'Prices and delivery change. Read the new total.'),
-        ('WATCH YOUR BASKET FREE', 'Or save your basket on CWhereUCheaper and watch it for free.'),
+        ('WATCH YOUR BASKET FREE', 'Or save your basket on CWhereUCheaper and watch it for free. Cheapest match first.'),
     )),
     'A marketplace seller matters': ('receipt', 'receipt.jpg', (
         ('WRONG SELLER?', 'Same product page. Different seller. Did you check?'),
         ("WHO'S SELLING?", 'Look at the actual seller, not just the product.'),
         ('DELIVERY. RETURNS.', 'Delivery and returns can change with the seller.'),
-        ('COMPARE EXACT OFFERS', 'Compare offers for the same product on CWhereUCheaper.'),
+        ('COMPARE EXACT OFFERS', 'Compare offers for the same product on CWhereUCheaper. Cheapest match first.'),
     )),
     'Check the product variant': ('court', 'pouches.png', (
         ('WRONG ONE AGAIN?', 'The picture said your flavour. The dropdown said surprise.'),
         ('SIZE. COLOUR. FLAVOUR.', 'Same product family is not the same product.'),
         ('RECHECK THE PRICE', 'Pick the exact version, then check the price again.'),
-        ('MATCH IT EXACTLY', 'Search the exact product on CWhereUCheaper.'),
+        ('MATCH IT EXACTLY', 'Search the exact product on CWhereUCheaper. Cheapest match first.'),
     )),
     'A good price on the wrong item': ('court', 'court.jpg', (
         ('CHEAP. AND USELESS.', 'A cheap spare part is expensive if it does not fit.'),
         ('CHECK THE MODEL', 'Confirm the exact model and size first.'),
         ('THEN COMPARE', 'Only compare prices on parts that actually fit.'),
-        ('SEARCH THE EXACT ONE', 'Then search that exact item on CWhereUCheaper.'),
+        ('SEARCH THE EXACT ONE', 'Then search that exact item on CWhereUCheaper. Cheapest match first.'),
     )),
     'Thirty seconds before checkout': ('receipt', 'receipt.jpg', (
         ('FREE DELIVERY TRAP', 'You added stuff just to get free delivery, didn\'t you?'),
         ('TAKE IT OUT', 'Remove anything you only added to reach the threshold.'),
         ('COMPARE BOTH TOTALS', 'Compare both totals. Sometimes paying delivery is cheaper.'),
-        ('CHECK SHOPS FIRST', 'Check prices across shops on CWhereUCheaper first.'),
+        ('CHECK SHOPS FIRST', 'Check prices across shops on CWhereUCheaper first. Cheapest match first.'),
     )),
     'Compare usable quantity': ('pov', 'pouches.png', (
         ('BULK BUY REGRET', 'Your bulk buy looked brilliant. Then the leftovers moved in.'),
         ('WILL YOU USE IT?', 'A low unit price only helps if you use it in time.'),
         ('SMALL CAN WIN', 'Sometimes the smaller pack is the better buy.'),
-        ('COMPARE SIZES', 'Compare pack sizes across shops on CWhereUCheaper.'),
+        ('COMPARE SIZES', 'Compare pack sizes across shops on CWhereUCheaper. Cheapest match first.'),
     )),
 }
+
+# Live CWUC search recorded for the bridge beat (site_capture.py). Real public
+# grocery searches that returned several matches on 25 November 2026.
+SITE_QUERY = {
+    'Do the division before the decision': 'colgate 75ml',
+    'The R15 delivery difference': 'nescafe classic 200g',
+    'Cheaper per unit can still cost more today': 'omo washing powder 2kg',
+    'Watch for a different product strength': 'sunlight dishwashing liquid',
+    'A bigger bottle may be different strength': 'sunlight dishwashing liquid',
+    'Choose a basket before choosing an offer': 'cooking oil 2l',
+    'Before you tap reorder': 'jacobs coffee',
+    'A marketplace seller matters': 'nescafe classic 200g',
+    'Check the product variant': 'colgate 75ml',
+    'A good price on the wrong item': 'skip auto washing powder',
+    'Thirty seconds before checkout': 'jacobs coffee',
+    'Compare usable quantity': 'cooking oil 2l',
+}
+# Searches whose top results showed two or more shops on 25 November 2026. The
+# recorder re-checks this live and moves down the list, because the bridge line
+# says "across shops" and the footage must show it.
+SITE_QUERY_ROTATION = ('colgate 75ml', 'omo washing powder 2kg', 'jacobs coffee', 'cooking oil 2l',
+                       'skip auto washing powder', 'sunlight dishwashing liquid', 'nescafe classic 200g')
 
 # Animated comparison card for the reveal beat: (label, value) pairs, winner index.
 COMPARE = {
@@ -217,6 +239,7 @@ def episode_item(item, day, slot):
         'creative_policy': 'hook-bridge-cta-20261125',
         'beats': beats,
         'compare': COMPARE.get(topic) if not item.get('response_request_id') else None,
+        'site_query': SITE_QUERY.get(topic) or SITE_QUERY_ROTATION[day.toordinal() % len(SITE_QUERY_ROTATION)],
         'style': 'Playful',
         'creative_version': VERSION,
         'script': ' '.join(line for _, line in beats),

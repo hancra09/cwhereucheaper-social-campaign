@@ -35,7 +35,7 @@ def ease_back(x):
 
 
 class Renderer:
-    def __init__(self, cfg, narration, assets, giveaway_card=None):
+    def __init__(self, cfg, narration, assets, giveaway_card=None, site=None):
         self.cfg = cfg
         self.cuts = narration['cuts']
         self.total = narration['duration']
@@ -55,6 +55,13 @@ class Renderer:
         self.web = Image.open(assets / 'website.png').convert('RGB')
         self.shade = self._gradient()
         self.words = self._word_times()
+        self.site = None
+        if site and site.get('frames'):
+            from pathlib import Path
+            d = Path(site['dir'])
+            holds = [max(.03, f['hold']) for f in site['frames']]
+            self.site = {'frames': [d / f['file'] for f in site['frames']], 'holds': holds,
+                         'total': sum(holds), 'date': self._date(site['captured_sast']), 'cache': {}}
 
     # ------------------------------------------------------------------ fonts
     def font(self, kind, size, weight=b'Black'):
@@ -194,9 +201,11 @@ class Renderer:
                 d.text((x, y), word, font=f, fill=WHITE, stroke_width=9, stroke_fill=BLACK)
             x += widths[j]
 
-    def tag(self, im):
+    def tag(self, im, live=False):
         cfg = self.cfg
-        if cfg.get('synthetic_test'):
+        if live and not cfg.get('synthetic_test'):
+            label, fill = f'LIVE ON CWUC · {self.site["date"]}', (200, 30, 80)
+        elif cfg.get('synthetic_test'):
             label, fill = 'SIMULATED VIEWER REQUEST', (139, 36, 56)
         elif cfg.get('is_price_evidence'):
             label, fill = 'PRICE CHECK · AI VISUALS', NAVY
@@ -314,6 +323,49 @@ class Renderer:
             im.paste(ring, (0, 0), ring)
         return im
 
+    @staticmethod
+    def _date(stamp):
+        import datetime as dt
+        d = dt.datetime.fromisoformat(stamp)
+        return f'{d.day} {d.strftime("%b").upper()}'
+
+    def site_frame(self, local, dur):
+        """Pick the recorded frame for this moment, compressing the recording to the beat."""
+        site = self.site
+        pos = clamp(local / max(dur - .25, .3)) * site['total']
+        acc = 0
+        for i, h in enumerate(site['holds']):
+            acc += h
+            if pos < acc:
+                break
+        cache = site['cache']
+        if i not in cache:
+            cache.clear()
+            cache[i] = Image.open(site['frames'][i]).convert('RGB').resize((620, 1102), Image.Resampling.LANCZOS)
+        return cache[i]
+
+    def scene_live(self, local, dur):
+        """The CWUC bridge as real footage: a live search recorded on the public site."""
+        im = Image.new('RGB', (W, H), NAVY)
+        d = ImageDraw.Draw(im)
+        for y in range(0, H, 6):
+            k = y / H
+            d.rectangle((0, y, W, y + 6), fill=tuple(int(NAVY[c] * (1 - k) + NAVY2[c] * k) for c in range(3)))
+        p = ease_out(local / .35)
+        screen = self.site_frame(local, dur)
+        pw, ph = screen.width + 40, screen.height + 40
+        x0 = (W - pw) // 2
+        y0 = 545 + int((1 - p) * 900)
+        shadow = Image.new('L', (pw + 80, ph + 80), 0)
+        ImageDraw.Draw(shadow).rounded_rectangle((40, 50, pw + 40, ph + 50), 70, fill=160)
+        im.paste(BLACK, (x0 - 40, y0 - 40), shadow.filter(ImageFilter.GaussianBlur(26)))
+        d.rounded_rectangle((x0, y0, x0 + pw, y0 + ph), 64, fill=(16, 16, 20))
+        mask = Image.new('L', screen.size, 0)
+        ImageDraw.Draw(mask).rounded_rectangle((0, 0, screen.width - 1, screen.height - 1), 46, fill=255)
+        im.paste(screen, (x0 + 20, y0 + 20), mask)
+        d.rounded_rectangle((W // 2 - 70, y0 + 34, W // 2 + 70, y0 + 58), 12, fill=(16, 16, 20))
+        return im
+
     def scene_end(self, t, local):
         im = Image.new('RGB', (W, H), NAVY)
         d = ImageDraw.Draw(im)
@@ -359,6 +411,10 @@ class Renderer:
         if beat == last:
             im = self.scene_end(t, local)
             self.captions(im, beat, t, y=1520)
+        elif bridge and self.site:
+            im = self.scene_live(local, dur)
+            self.headline(im, headline, local, y=230)
+            self.captions(im, beat, t, y=1735)
         elif bridge:
             im = self.scene_site(local, dur)
             self.headline(im, headline, local, y=250)
@@ -374,6 +430,6 @@ class Renderer:
             self.headline(im, headline, local, y=260, hl=YELLOW if beat != 1 else WHITE)
             self.captions(im, beat, t)
         im = self.whip(im, local) if beat else im
-        self.tag(im)
+        self.tag(im, live=bool(bridge and self.site))
         self.progress(im, t)
         return im

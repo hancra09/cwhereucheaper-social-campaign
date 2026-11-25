@@ -368,7 +368,13 @@ def render_video(item,tag,destination,work):
  cmd=[ff,'-y','-v','error','-f','rawvideo','-pix_fmt','rgb24','-s','1080x1920','-r','30','-i','-','-i',str(work/'narration.wav'),'-map','0:v','-map','1:a:0','-c:v','libx264','-preset','fast','-crf','19','-pix_fmt','yuv420p','-threads','2','-c:a','aac','-b:a','160k','-t',str(TOTAL),'-movflags','+faststart',str(destination)]
  if episode:
   import creative_v5
-  render_v5=creative_v5.Renderer(CFG,NARRATION,ASSETS,giveaway_end_card if CFG.get('giveaway') else None).frame
+  site=None
+  if CFG.get('site_query') and os.environ.get('CWUC_SITE_CAPTURE','1')!='0':
+   import site_capture
+   from entertainment import SITE_QUERY_ROTATION
+   site=site_capture.capture([CFG['site_query'],*[q for q in SITE_QUERY_ROTATION if q!=CFG['site_query']]],work/'site')
+   if site:site['dir']=str(work/'site')
+  render_v5=creative_v5.Renderer(CFG,NARRATION,ASSETS,giveaway_end_card if CFG.get('giveaway') else None,site).frame
  proc=subprocess.Popen(cmd,stdin=subprocess.PIPE)
  for old in work.glob('preview-*.jpg'):old.unlink()
  preview_frames={round((start + end) / 2 * 30) for start, end in zip(NARRATION['cuts'], NARRATION['cuts'][1:])}
@@ -389,6 +395,7 @@ def render_video(item,tag,destination,work):
               creative_policy=CFG.get('creative_policy'), opening_asset=CFG['asset'],
               storyboard=[heading for heading,_ in CFG['beats']])
   meta.pop('site_capture_date')
+  if site:meta.update(site_capture={k:site[k] for k in ('query','url','captured_sast','matches','shops_shown')})
  (work/'creative-result.json').write_text(json.dumps(meta,indent=2)+'\n');return meta
 
 

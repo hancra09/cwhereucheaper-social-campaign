@@ -93,3 +93,15 @@ Hooks speak to the viewer in under eight words. Bridge lines describe only free-
 "See Where You Cheaper dot co dot za". Anton and Montserrat (SIL Open Font Licence, licences in
 `creative-assets/fonts`) are bundled so the runner needs no font install. The giveaway end card
 is unchanged. Narration may run up to 28 seconds.
+
+### Live site footage in the bridge beat
+
+`site_capture.py` records a real search on the public site before each v5 render: a headless
+phone-sized browser types the slot's grocery search, submits it and scrolls the results. The
+footage plays inside a phone frame during the CWUC beat, tagged "LIVE ON CWUC · <date>". The
+prices are the site's own results with the site's own "checked" times on screen. Because the
+narration says "across shops", the recorder only uses a search whose top six results show at
+least two shops, trying the slot's search first and then `SITE_QUERY_ROTATION`. The mascot is
+hidden during capture. Any failure (browser missing, site down, too few shops) falls back to the
+homepage screenshot, so capture never blocks publishing. Set `CWUC_SITE_CAPTURE=0` to disable it.
+The workflow installs Chromium in an optional step (`continue-on-error`).

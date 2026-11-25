@@ -80,3 +80,28 @@ its approved options when the nearest neighbouring creative would repeat, or hol
 the candidate. The asset library can be reused with spacing; this is not a claim
 of never-reused footage or unlimited new ideas. A stale video cannot create a new
 post via the old renderer. Existing scheduled IDs and times are not reset.
+
+## creative-v5 refresh · Owner request 25 November 2026
+
+New slots use `creative_v5.py`: full-bleed moving visuals, kinetic headlines, word-by-word
+captions timed to the narration, animated price cards for the reveal beat, a CWUC bridge beat
+showing the real homepage capture in a browser card, and a free-account end card with the URL and
+"link in bio". Every story now follows hook → problem → reveal → CWUC bridge → free-account CTA.
+Hooks speak to the viewer in under eight words. Bridge lines describe only free-site features
+(same product across shops, basket comparison, watching a basket). Illustrative prices still say
+"in this example" and the on-screen tag reads "Example prices · AI visuals". The spoken brand is
+"See Where You Cheaper dot co dot za". Anton and Montserrat (SIL Open Font Licence, licences in
+`creative-assets/fonts`) are bundled so the runner needs no font install. The giveaway end card
+is unchanged. Narration may run up to 28 seconds.
+
+### Live site footage in the bridge beat
+
+`site_capture.py` records a real search on the public site before each v5 render: a headless
+phone-sized browser types the slot's grocery search, submits it and scrolls the results. The
+footage plays inside a phone frame during the CWUC beat, tagged "LIVE ON CWUC · <date>". The
+prices are the site's own results with the site's own "checked" times on screen. Because the
+narration says "across shops", the recorder only uses a search whose top six results show at
+least two shops, trying the slot's search first and then `SITE_QUERY_ROTATION`. The mascot is
+hidden during capture. Any failure (browser missing, site down, too few shops) falls back to the
+homepage screenshot, so capture never blocks publishing. Set `CWUC_SITE_CAPTURE=0` to disable it.
+The workflow installs Chromium in an optional step (`continue-on-error`).

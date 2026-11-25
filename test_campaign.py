@@ -256,7 +256,7 @@ class CampaignSafety(unittest.TestCase):
             run.assert_not_called()
         with patch.object(c,'existing_posts',return_value=[]), \
                 patch.object(c,'render_budget',return_value=['a','b','c']), \
-                patch.object(c,'read_release',return_value={'body':json.dumps({'video':'https://github.com/example/video-creative-v4.mp4'}),'assets':[]}), \
+                patch.object(c,'read_release',return_value={'body':json.dumps({'video':'https://github.com/example/video-creative-v5.mp4'}),'assets':[]}), \
                 patch.object(c,'run') as run:
             self.assertTrue(c.prepare_ahead(now))
             run.assert_called_once()

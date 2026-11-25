@@ -20,9 +20,9 @@ class CreativeSafety(unittest.TestCase):
   self.assertEqual(len({item['format'] for item in items}), 3)
   self.assertEqual(len({item['asset'] for item in items}), 3)
   for item in items:
-   self.assertEqual(item['creative_version'], 'creative-v4')
+   self.assertEqual(item['creative_version'], 'creative-v5')
    self.assertTrue((e.ASSETS / item['asset']).is_file())
-   self.assertEqual(item['beats'][-1][0], 'CHECK BEFORE YOU BUY')
+   self.assertEqual(item['beats'][-1][0], 'FREE ACCOUNT · LINK IN BIO')
    self.assertIn('CWhereUCheaper.co.za', item['beats'][-1][1])
    tag = f"20261121-{item['slot']}"
    caption = c.caption(item, 'tiktok', tag)
@@ -30,7 +30,7 @@ class CreativeSafety(unittest.TestCase):
    self.assertNotIn('Start your next price check', caption)
    self.assertEqual(c.campaign_posts([{'text': caption}]), [{'text': caption}])
   tomorrow = c.scheduled_item(day + dt.timedelta(days=1), 'early')
-  self.assertEqual(tomorrow['creative_version'], 'creative-v4')
+  self.assertEqual(tomorrow['creative_version'], 'creative-v5')
   self.assertNotEqual(items[0]['script'], tomorrow['script'])
 
  def test_rand_pronunciation_preserves_currency_amount(self):
@@ -47,12 +47,12 @@ class CreativeSafety(unittest.TestCase):
   self.assertTrue(url.endswith('/20261112-am-creative-v2.mp4'))
   self.assertEqual(gh.call_count,3)
  def test_v4_cache_accepts_only_exact_same_slot_archive(self):
-  entries=[{'path':'20261122-am-creative-v4.mp4','type':'blob','mode':'100644','sha':'v4'}]
+  entries=[{'path':'20261122-am-creative-v5.mp4','type':'blob','mode':'100644','sha':'v4'}]
   fake=lambda: Mock(side_effect=[{'object':{'sha':'c'}},{'tree':{'sha':'t'}},{'tree':entries}])
   raw=Mock(return_value=b'0000ftypv4')
-  url=f'https://github.com/{c.REPO}/releases/download/20261122-am/video-creative-v4.mp4'
+  url=f'https://github.com/{c.REPO}/releases/download/20261122-am/video-creative-v5.mp4'
   now=dt.datetime(2026,11,22)
-  self.assertTrue(m.publish('20261122-am',url,gh=fake(),request=raw,repo=c.REPO,now=now).endswith('/20261122-am-creative-v4.mp4'))
+  self.assertTrue(m.publish('20261122-am',url,gh=fake(),request=raw,repo=c.REPO,now=now).endswith('/20261122-am-creative-v5.mp4'))
   with self.assertRaises(ValueError):
    m.publish('20261122-am',url.replace('20261122-am','20261123-am'),gh=fake(),request=raw,repo=c.REPO,now=now)
  def upgrade_fixture(self,status='scheduled'):
@@ -83,7 +83,7 @@ class CreativeSafety(unittest.TestCase):
   items = [c.scheduled_item(sunday,'am'), c.scheduled_item(monday,'early'), c.scheduled_item(monday,'am')]
   self.assertEqual([item['asset'] for item in items], ['pouches.png','bottles.png','receipt.jpg'])
   self.assertEqual(len({line for item in items for _, line in item['beats'][:-1]}),12)
-  self.assertTrue(all(item['beats'][-1][1].endswith('before your next checkout.') for item in items))
+  self.assertTrue(all(item['beats'][-1][1].endswith('Link in bio.') for item in items))
   self.assertIn('R54 divided by six is R9 each.',items[2]['script'])
   self.assertIn('R8 in this example',items[2]['script'])
   self.assertNotIn('I came for do the division',items[2]['script'])
